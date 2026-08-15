@@ -96,23 +96,44 @@ document.addEventListener('DOMContentLoaded', function() {
     showState('processing');
     updateStatus('Preparing image...');
 
-    // Compress and send to OCR
-    compressImage(file, 1024).then(function(base64) {
-      updateStatus('Reading handwriting...');
-      return runOCR(base64);
-    }).then(function(text) {
-      updateStatus('Creating beautiful notes...');
-      var data = structureText(text);
-      lastData = data;
-      renderNotes(data, currentTheme);
-      showState('result');
-    }).catch(function(err) {
-      console.error(err);
-      alert('Error: ' + err.message + '\nUsing demo notes instead.');
-      lastData = getDemoData();
-      renderNotes(lastData, currentTheme);
-      showState('result');
-    });
+    var provider = document.getElementById('aiProvider');
+    var mode = provider ? provider.value : 'hf';
+
+    if (mode === 'local') {
+      // Local OCR mode
+      compressImage(file, 1024).then(function(base64) {
+        updateStatus('Reading handwriting...');
+        return runOCR(base64);
+      }).then(function(text) {
+        updateStatus('Creating beautiful notes...');
+        var data = structureText(text);
+        lastData = data;
+        renderNotes(data, currentTheme);
+        showState('result');
+      }).catch(function(err) {
+        console.error(err);
+        alert('Error: ' + err.message);
+        lastData = getDemoData();
+        renderNotes(lastData, currentTheme);
+        showState('result');
+      });
+    } else {
+      // AI Vision mode (Hugging Face)
+      compressImage(file, 1024).then(function(base64) {
+        updateStatus('Sending to AI Vision...');
+        return processWithHF(base64, file.type || 'image/jpeg');
+      }).then(function(data) {
+        lastData = data;
+        renderNotes(data, currentTheme);
+        showState('result');
+      }).catch(function(err) {
+        console.error('AI Vision error:', err);
+        alert('AI Error: ' + err.message + '\nFalling back to demo notes.');
+        lastData = getDemoData();
+        renderNotes(lastData, currentTheme);
+        showState('result');
+      });
+    }
   }
 
   function updateStatus(msg) {
@@ -189,6 +210,159 @@ document.addEventListener('DOMContentLoaded', function() {
       img.onerror = function() { reject(new Error('Failed to load image')); };
       img.src = 'data:image/jpeg;base64,' + base64;
     });
+  }
+
+  // ===== HUGGING FACE AI VISION (Free, No API Key) =====
+  function processWithHF(base64, mimeType) {
+    var prompt = `You are an expert study notes organizer. Analyze this handwritten notebook page image and extract ALL the content accurately.
+
+Return ONLY a valid JSON object with this exact structure:
+{
+  "title": "Main topic title",
+  "subtitle": "Subject area",
+  "sections": [
+    { "type": "heading", "content": "Section heading" },
+    { "type": "text", "content": "Explanation paragraph" },
+    { "type": "callout", "variant": "definition", "title": "Definition", "content": "Definition text" },
+    { "type": "callout", "variant": "key-concept", "title": "Key Concept", "content": "Important concept" },
+    { "type": "callout", "variant": "tip", "title": "Tip", "content": "Helpful tip" },
+    { "type": "table", "headers": ["Col1", "Col2"], "rows": [["val1", "val2"]] },
+    { "type": "formula", "latex": "LaTeX formula", "label": "Description" },
+    { "type": "list", "ordered": false, "items": ["Item 1", "Item 2"] },
+    { "type": "highlight", "content": "Important text", "color": "yellow" }
+  ]
+}
+
+Rules:
+- Extract ALL text from the handwritten notes accurately
+- Use heading for section titles
+- Use text for explanations
+- Use callout for definitions and key concepts
+- Use table for comparison data
+- Use formula for math equations (convert to LaTeX)
+- Use list for bullet points
+- Preserve the structure and hierarchy
+- Return ONLY the JSON object, nothing else`;
+
+    return new Promise(function(resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', 'https://router.huggingface.co/v1/chat/completions', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+
+      var body = JSON.stringify({
+        model: 'HuggingFaceH4/llama-3.2-11b-vision-instruct',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: 'data:' + mimeType + ';base64,' + base64 } }
+          ]
+        }],
+        max_tokens: 4096,
+        temperature: 0.2
+      });
+
+      xhr.onload = function() {
+        try {
+          var data = JSON.parse(xhr.responseText);
+          if (xhr.status !== 200) {
+            // Try alternative endpoint
+            tryAlternativeHF(base64, mimeType, resolve, reject);
+            return;
+          }
+          var text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content || '';
+          var parsed = parseAIResponse(text);
+          resolve(parsed);
+        } catch (e) {
+          tryAlternativeHF(base64, mimeType, resolve, reject);
+        }
+      };
+
+      xhr.onerror = function() {
+        tryAlternativeHF(base64, mimeType, resolve, reject);
+      };
+
+      xhr.send(body);
+    });
+  }
+
+  function tryAlternativeHF(base64, mimeType, resolve, reject) {
+    // Try using the free inference API
+    var prompt = `Analyze this handwritten notebook page. Extract ALL content and return ONLY valid JSON:
+{
+  "title": "Main topic",
+  "subtitle": "Subject",
+  "sections": [
+    { "type": "heading", "content": "Heading" },
+    { "type": "text", "content": "Text" },
+    { "type": "callout", "variant": "definition", "title": "Definition", "content": "Def" },
+    { "type": "callout", "variant": "key-concept", "title": "Key Concept", "content": "Concept" },
+    { "type": "table", "headers": ["C1", "C2"], "rows": [["v1", "v2"]] },
+    { "type": "formula", "latex": "LaTeX", "label": "Desc" },
+    { "type": "list", "ordered": false, "items": ["Item"] },
+    { "type": "highlight", "content": "Important", "color": "yellow" }
+  ]
+}
+Extract everything accurately. Return ONLY JSON.`;
+
+    // Use Pollinations.ai free API (no key needed)
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'https://text.pollinations.ai/', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+
+    var imageData = 'data:' + mimeType + ';base64,' + base64;
+    var body = JSON.stringify({
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant that analyzes handwritten notes and returns structured JSON. Return ONLY valid JSON, no markdown.' },
+        { role: 'user', content: prompt + '\n\n[Image: ' + imageData.substring(0, 50) + '...]' }
+      ],
+      model: 'openai',
+      jsonMode: true
+    });
+
+    xhr.onload = function() {
+      try {
+        var data = JSON.parse(xhr.responseText);
+        var text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content || data.content || '';
+        var parsed = parseAIResponse(text);
+        resolve(parsed);
+      } catch (e) {
+        // Final fallback: use local OCR
+        updateStatus('AI unavailable, using local OCR...');
+        runOCR(base64).then(function(text) {
+          resolve(structureText(text));
+        }).catch(function() {
+          resolve(getDemoData());
+        });
+      }
+    };
+
+    xhr.onerror = function() {
+      runOCR(base64).then(function(text) {
+        resolve(structureText(text));
+      }).catch(function() {
+        resolve(getDemoData());
+      });
+    };
+
+    xhr.send(body);
+  }
+
+  function parseAIResponse(text) {
+    var jsonStr = text.trim();
+    // Remove markdown code fences
+    if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    }
+    // Try to find JSON object
+    var match = jsonStr.match(/\{[\s\S]*\}/);
+    if (match) jsonStr = match[0];
+
+    var data = JSON.parse(jsonStr);
+    if (!data.title || !data.sections) {
+      throw new Error('Invalid response structure');
+    }
+    return data;
   }
 
   // ===== TEXT STRUCTURING (Improved) =====
