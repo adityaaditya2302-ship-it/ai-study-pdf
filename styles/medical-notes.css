@@ -1,0 +1,365 @@
+.notes-theme-medical-notes {
+  --accent: #10b981;
+  --accent-dark: #059669;
+  --accent-light: #ecfdf5;
+  --accent-border: #a7f3d0;
+  --text: #1a2e35;
+  --text-secondary: #475569;
+  --bg: #f8fafb;
+  --card-bg: #ffffff;
+  --border: #d1e7e0;
+  --font: 'Source Sans Pro', 'Inter', system-ui, sans-serif;
+  --mono: 'Fira Code', 'Consolas', monospace;
+  --radius: 6px;
+  --shadow: 0 1px 4px rgba(16,185,129,0.08);
+
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.75;
+  padding: 2rem;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.notes-theme-medical-notes * {
+  box-sizing: border-box;
+}
+
+.notes-theme-medical-notes .note-title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 3px solid var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notes-theme-medical-notes .note-title::before {
+  content: '+';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.notes-theme-medical-notes .note-callout {
+  background: var(--accent-light);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin: 1.25rem 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  transition: box-shadow 0.2s ease;
+}
+
+.notes-theme-medical-notes .note-callout:hover {
+  box-shadow: var(--shadow);
+}
+
+.notes-theme-medical-notes .note-callout::before {
+  content: 'Clinical Note';
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent-dark);
+  background: rgba(16,185,129,0.15);
+  padding: 0.2rem 0.6rem;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.notes-theme-medical-notes .note-callout.note-callout-warning {
+  background: #fffbeb;
+  border-left-color: #f59e0b;
+}
+
+.notes-theme-medical-notes .note-callout.note-callout-warning::before {
+  content: 'Contraindication';
+  color: #b45309;
+  background: rgba(245,158,11,0.15);
+}
+
+.notes-theme-medical-notes .note-callout.note-callout-danger {
+  background: #fef2f2;
+  border-left-color: #ef4444;
+}
+
+.notes-theme-medical-notes .note-callout.note-callout-danger::before {
+  content: 'Critical Alert';
+  color: #dc2626;
+  background: rgba(239,68,68,0.15);
+}
+
+.notes-theme-medical-notes .note-callout.note-callout-success {
+  background: #f0fdf4;
+  border-left-color: #22c55e;
+}
+
+.notes-theme-medical-notes .note-callout.note-callout-success::before {
+  content: 'Normal Finding';
+  color: #16a34a;
+  background: rgba(34,197,94,0.15);
+}
+
+.notes-theme-medical-notes .note-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 0.88rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--card-bg);
+}
+
+.notes-theme-medical-notes .note-table thead {
+  background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+  color: white;
+}
+
+.notes-theme-medical-notes .note-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.notes-theme-medical-notes .note-table td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.notes-theme-medical-notes .note-table tbody tr {
+  transition: background 0.15s;
+}
+
+.notes-theme-medical-notes .note-table tbody tr:hover {
+  background: var(--accent-light);
+}
+
+.notes-theme-medical-notes .note-table tbody tr:nth-child(even) {
+  background: #f0faf5;
+}
+
+.notes-theme-medical-notes .note-table tbody tr:nth-child(even):hover {
+  background: var(--accent-light);
+}
+
+.notes-theme-medical-notes .note-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.notes-theme-medical-notes .note-formula {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  text-align: center;
+  position: relative;
+  overflow-x: auto;
+}
+
+.notes-theme-medical-notes .note-formula::before {
+  content: 'Formula';
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.65rem;
+  font-family: var(--font);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+}
+
+.notes-theme-medical-notes .note-highlight {
+  background: linear-gradient(120deg, #bbf7d0 0%, #bbf7d0 100%);
+  background-size: 100% 40%;
+  background-repeat: no-repeat;
+  background-position: 0 88%;
+  padding: 0 4px;
+  border-radius: 2px;
+  transition: background-size 0.2s ease;
+}
+
+.notes-theme-medical-notes .note-highlight:hover {
+  background-size: 100% 100%;
+}
+
+.notes-theme-medical-notes .note-list {
+  margin: 1rem 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.notes-theme-medical-notes .note-list li {
+  padding: 0.35rem 0 0.35rem 1.5rem;
+  position: relative;
+}
+
+.notes-theme-medical-notes .note-list li::before {
+  content: '\2022';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.2rem;
+  line-height: 1.5;
+}
+
+.notes-theme-medical-notes .note-list.note-list-numbered {
+  list-style: none;
+  counter-reset: item;
+}
+
+.notes-theme-medical-notes .note-list.note-list-numbered li {
+  counter-increment: item;
+}
+
+.notes-theme-medical-notes .note-list.note-list-numbered li::before {
+  content: counter(item) '.';
+  color: var(--accent-dark);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.notes-theme-medical-notes .mermaid {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.notes-theme-medical-notes .timeline {
+  position: relative;
+  padding-left: 2rem;
+  margin: 1.5rem 0;
+}
+
+.notes-theme-medical-notes .timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-border));
+}
+
+.notes-theme-medical-notes .timeline-item {
+  position: relative;
+  padding: 0.6rem 0 0.6rem 1.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.notes-theme-medical-notes .timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -2.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.notes-theme-medical-notes .timeline-item:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.notes-theme-medical-notes code {
+  font-family: var(--mono);
+  background: var(--accent-light);
+  border: 1px solid var(--accent-border);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: var(--accent-dark);
+}
+
+.notes-theme-medical-notes blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 1rem 0;
+  padding: 0.75rem 1.25rem;
+  background: var(--accent-light);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.notes-theme-medical-notes h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--accent-dark);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notes-theme-medical-notes h2::before {
+  content: '';
+  width: 4px;
+  height: 1.2em;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.notes-theme-medical-notes h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.notes-theme-medical-notes p {
+  margin: 0.75rem 0;
+}
+
+.notes-theme-medical-notes a {
+  color: var(--accent-dark);
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid var(--accent-border);
+  transition: border-color 0.2s;
+}
+
+.notes-theme-medical-notes a:hover {
+  border-bottom-color: var(--accent);
+}

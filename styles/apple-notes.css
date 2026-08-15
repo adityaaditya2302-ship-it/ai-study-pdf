@@ -1,0 +1,298 @@
+.notes-theme-apple-notes {
+  --accent: #64748b;
+  --accent-dark: #334155;
+  --accent-light: #f8fafc;
+  --accent-border: #e2e8f0;
+  --blue: #3b82f6;
+  --green: #22c55e;
+  --red: #ef4444;
+  --orange: #f97316;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --bg: #ffffff;
+  --card-bg: #f8fafc;
+  --border: #e2e8f0;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', 'Menlo', 'Consolas', monospace;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.06);
+
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.65;
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.notes-theme-apple-notes * {
+  box-sizing: border-box;
+}
+
+.notes-theme-apple-notes .note-title {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.notes-theme-apple-notes .note-callout {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.notes-theme-apple-notes .note-callout:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.notes-theme-apple-notes .note-callout.note-callout-info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  border-left: 4px solid var(--blue);
+}
+
+.notes-theme-apple-notes .note-callout.note-callout-warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  border-left: 4px solid var(--orange);
+}
+
+.notes-theme-apple-notes .note-callout.note-callout-danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  border-left: 4px solid var(--red);
+}
+
+.notes-theme-apple-notes .note-callout.note-callout-success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  border-left: 4px solid var(--green);
+}
+
+.notes-theme-apple-notes .note-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.88rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.notes-theme-apple-notes .note-table thead {
+  background: var(--accent-dark);
+  color: white;
+}
+
+.notes-theme-apple-notes .note-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+}
+
+.notes-theme-apple-notes .note-table td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.notes-theme-apple-notes .note-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.notes-theme-apple-notes .note-table tbody tr:hover {
+  background: var(--card-bg);
+}
+
+.notes-theme-apple-notes .note-formula {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin: 1rem 0;
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  text-align: center;
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+}
+
+.notes-theme-apple-notes .note-highlight {
+  background: linear-gradient(120deg, #fef08a 0%, #fef08a 100%);
+  background-size: 100% 35%;
+  background-repeat: no-repeat;
+  background-position: 0 90%;
+  padding: 0 3px;
+  border-radius: 3px;
+  transition: background-size 0.2s ease;
+}
+
+.notes-theme-apple-notes .note-highlight:hover {
+  background-size: 100% 100%;
+}
+
+.notes-theme-apple-notes .note-list {
+  margin: 0.75rem 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.notes-theme-apple-notes .note-list li {
+  padding: 0.3rem 0 0.3rem 1.5rem;
+  position: relative;
+}
+
+.notes-theme-apple-notes .note-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.notes-theme-apple-notes .note-list.note-list-numbered {
+  list-style: none;
+  counter-reset: item;
+}
+
+.notes-theme-apple-notes .note-list.note-list-numbered li {
+  counter-increment: item;
+}
+
+.notes-theme-apple-notes .note-list.note-list-numbered li::before {
+  content: counter(item);
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.82rem;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+}
+
+.notes-theme-apple-notes .mermaid {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.notes-theme-apple-notes .timeline {
+  position: relative;
+  padding-left: 2rem;
+  margin: 1.5rem 0;
+}
+
+.notes-theme-apple-notes .timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: var(--border);
+}
+
+.notes-theme-apple-notes .timeline-item {
+  position: relative;
+  padding: 0.6rem 0 0.6rem 1.25rem;
+  transition: transform 0.15s ease;
+}
+
+.notes-theme-apple-notes .timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -2.2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.notes-theme-apple-notes .timeline-item:hover {
+  transform: translateX(3px);
+}
+
+.notes-theme-apple-notes code {
+  font-family: var(--mono);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  padding: 0.15rem 0.4rem;
+  border-radius: 5px;
+  font-size: 0.84em;
+}
+
+.notes-theme-apple-notes blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 1rem 0;
+  padding: 0.75rem 1.25rem;
+  background: var(--card-bg);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.notes-theme-apple-notes h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.notes-theme-apple-notes h3 {
+  font-size: 1.12rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.notes-theme-apple-notes p {
+  margin: 0.65rem 0;
+}
+
+.notes-theme-apple-notes a {
+  color: var(--blue);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.notes-theme-apple-notes a:hover {
+  opacity: 0.7;
+}
+
+.notes-theme-apple-notes strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.notes-theme-apple-notes em {
+  font-style: italic;
+  color: var(--text-secondary);
+}

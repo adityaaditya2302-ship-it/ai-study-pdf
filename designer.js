@@ -1,0 +1,679 @@
+/* ============================================================
+   AI Study PDF — Designer App Logic
+   Handles upload, processing, theme selection, AI simulation,
+   rendering integration, and export.
+   ============================================================ */
+
+document.addEventListener('DOMContentLoaded', () => {
+  // ── DOM References ─────────────────────────────────────────
+  const html = document.documentElement;
+  const themeToggle = document.getElementById('themeToggle');
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
+  const cameraBtn = document.getElementById('cameraBtn');
+  const styleGrid = document.getElementById('styleGrid');
+  const styleButtons = styleGrid ? styleGrid.querySelectorAll('.style-btn') : [];
+  const exportPdf = document.getElementById('exportPdf');
+  const exportHtml = document.getElementById('exportHtml');
+  const exportMd = document.getElementById('exportMd');
+  const stateUpload = document.getElementById('stateUpload');
+  const stateProcessing = document.getElementById('stateProcessing');
+  const stateResult = document.getElementById('stateResult');
+  const processingStatus = document.getElementById('processingStatus');
+  const notesPreview = document.getElementById('notesPreview');
+  const notesContainer = document.getElementById('notesContainer');
+  const previewThemeName = document.getElementById('previewThemeName');
+  const btnZoomIn = document.getElementById('btnZoomIn');
+  const btnZoomOut = document.getElementById('btnZoomOut');
+  const btnReset = document.getElementById('btnReset');
+  const btnNewUpload = document.getElementById('btnNewUpload');
+
+  // ── App State ──────────────────────────────────────────────
+  let currentTheme = 'minimal';
+  let currentZoom = 1;
+  let uploadedFile = null;
+  let currentNotesHTML = '';
+
+  // ============================================================
+  // 1. THEME TOGGLE (Dark / Light mode for the page itself)
+  // ============================================================
+  function setPageTheme(theme) {
+    html.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    if (themeToggle) {
+      themeToggle.innerHTML = theme === 'dark'
+        ? '<span class="icon-sun">☀️</span>'
+        : '<span class="icon-moon">🌙</span>';
+    }
+  }
+
+  // Restore saved page theme
+  const savedPageTheme = localStorage.getItem('theme');
+  if (savedPageTheme) {
+    setPageTheme(savedPageTheme);
+  } else {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setPageTheme(prefersDark ? 'dark' : 'light');
+  }
+
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      const current = html.getAttribute('data-theme');
+      setPageTheme(current === 'dark' ? 'light' : 'dark');
+    });
+  }
+
+  // ============================================================
+  // 2. FILE UPLOAD HANDLING
+  // ============================================================
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+  const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+  /** Validate file type and size */
+  function validateFile(file) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      alert('Invalid file type. Please upload JPG, PNG, or PDF.');
+      return false;
+    }
+    if (file.size > MAX_SIZE) {
+      alert('File is too large. Maximum size is 10MB.');
+      return false;
+    }
+    return true;
+  }
+
+  /** Show image preview in the upload zone */
+  function showPreview(file) {
+    if (!uploadZone) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadZone.innerHTML = `
+        <div class="upload-preview">
+          <img src="${e.target.result}" alt="Uploaded preview" class="preview-img">
+          <p class="preview-filename">${file.name}</p>
+          <button class="preview-remove" id="removePreview">✕ Remove</button>
+        </div>
+      `;
+      const removeBtn = document.getElementById('removePreview');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          resetUploadZone();
+          uploadedFile = null;
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /** Reset the upload zone back to its default state */
+  function resetUploadZone() {
+    if (!uploadZone) return;
+    uploadZone.innerHTML = `
+      <div class="upload-zone-inner">
+        <div class="upload-icon">📷</div>
+        <p class="upload-text">Drag & drop a notebook page</p>
+        <p class="upload-subtext">or click to browse</p>
+      </div>
+      <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
+    `;
+    // Re-bind file input reference
+    const newInput = document.getElementById('fileInput');
+    if (newInput) {
+      newInput.addEventListener('change', handleFileSelect);
+    }
+  }
+
+  /** Handle files selected via input */
+  function handleFileSelect(e) {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      processFiles(files[0]);
+    }
+  }
+
+  /** Process a single file: validate, preview, start AI */
+  function processFiles(file) {
+    if (!validateFile(file)) return;
+    uploadedFile = file;
+    showPreview(file);
+    startAIProcessing();
+  }
+
+  // -- Click to upload --
+  if (uploadZone) {
+    uploadZone.addEventListener('click', (e) => {
+      // Don't trigger if clicking the remove button or preview image
+      if (e.target.closest('.preview-remove') || e.target.closest('.preview-img')) return;
+      fileInput.click();
+    });
+  }
+
+  // -- File input change --
+  if (fileInput) {
+    fileInput.addEventListener('change', handleFileSelect);
+  }
+
+  // -- Drag and drop --
+  if (uploadZone) {
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadZone.classList.add('drag-over');
+    });
+
+    uploadZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadZone.classList.remove('drag-over');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadZone.classList.remove('drag-over');
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) {
+        processFiles(files[0]);
+      }
+    });
+  }
+
+  // -- Camera capture --
+  if (cameraBtn) {
+    cameraBtn.addEventListener('click', () => {
+      // Create a temporary file input with capture attribute
+      const tempInput = document.createElement('input');
+      tempInput.type = 'file';
+      tempInput.accept = 'image/*';
+      tempInput.capture = 'environment';
+      tempInput.style.display = 'none';
+      document.body.appendChild(tempInput);
+      tempInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length > 0) {
+          processFiles(files[0]);
+        }
+        document.body.removeChild(tempInput);
+      });
+      tempInput.click();
+    });
+  }
+
+  // ============================================================
+  // 3. STYLE SELECTOR — 10 Themes
+  // ============================================================
+
+  /** Apply the selected notes theme to the container */
+  function applyNotesTheme(theme) {
+    currentTheme = theme;
+    // Remove all existing theme classes from the container
+    const themeClasses = [
+      'minimal', 'medical', 'engineering', 'cute', 'dark',
+      'notebook', 'apple', 'goodnotes', 'pinterest', 'exam'
+    ];
+    if (notesContainer) {
+      themeClasses.forEach(cls => notesContainer.classList.remove(`theme-${cls}`));
+      notesContainer.classList.add(`theme-${theme}`);
+    }
+    // Update the preview label
+    if (previewThemeName) {
+      previewThemeName.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+    }
+    // Update active button state
+    styleButtons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.theme === theme);
+    });
+    // Save preference
+    localStorage.setItem('notesTheme', theme);
+    // Re-render notes with new theme if content exists
+    if (currentNotesHTML && typeof renderNotes === 'function') {
+      renderNotes(lastStructuredData, theme);
+    }
+  }
+
+  // Bind click events to theme buttons
+  styleButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyNotesTheme(btn.dataset.theme);
+    });
+  });
+
+  // Restore saved notes theme
+  const savedNotesTheme = localStorage.getItem('notesTheme');
+  if (savedNotesTheme) {
+    applyNotesTheme(savedNotesTheme);
+  }
+
+  // ============================================================
+  // 4. AI PROCESSING SIMULATION
+  // ============================================================
+  let lastStructuredData = null;
+
+  const PIPELINE_STEPS = [
+    { key: 'enhance', label: 'Enhancing image quality...', time: 1200 },
+    { key: 'read', label: 'Reading handwriting...', time: 1800 },
+    { key: 'understand', label: 'Understanding content...', time: 1500 },
+    { key: 'design', label: 'Designing beautiful notes...', time: 1600 }
+  ];
+
+  /** Switch between view states */
+  function showState(state) {
+    [stateUpload, stateProcessing, stateResult].forEach(el => {
+      if (!el) return;
+      el.classList.add('hidden');
+    });
+    if (state === 'upload' && stateUpload) stateUpload.classList.remove('hidden');
+    if (state === 'processing' && stateProcessing) stateProcessing.classList.remove('hidden');
+    if (state === 'result' && stateResult) stateResult.classList.remove('hidden');
+  }
+
+  /** Animate pipeline steps one by one */
+  function animatePipeline() {
+    const steps = document.querySelectorAll('.pipeline-step');
+    steps.forEach(s => {
+      s.classList.remove('active', 'completed');
+    });
+
+    let delay = 0;
+    PIPELINE_STEPS.forEach((step, index) => {
+      const el = document.querySelector(`.pipeline-step[data-step="${step.key}"]`);
+      if (!el) return;
+
+      // Start this step
+      setTimeout(() => {
+        el.classList.add('active');
+        if (processingStatus) processingStatus.textContent = step.label;
+      }, delay);
+
+      // Mark completed
+      setTimeout(() => {
+        el.classList.remove('active');
+        el.classList.add('completed');
+      }, delay + step.time);
+
+      delay += step.time;
+    });
+
+    return delay; // total time for all steps
+  }
+
+  /** Start the AI processing simulation */
+  function startAIProcessing() {
+    showState('processing');
+
+    const totalDuration = animatePipeline();
+
+    // After all steps complete, generate notes
+    setTimeout(() => {
+      const mockData = generateMockNotes();
+      lastStructuredData = mockData;
+
+      // Call the renderer (from renderer.js)
+      if (typeof renderNotes === 'function') {
+        renderNotes(mockData, currentTheme);
+      } else {
+        // Fallback: render basic HTML if renderer.js not loaded
+        notesContainer.innerHTML = fallbackRender(mockData);
+      }
+
+      currentNotesHTML = notesContainer ? notesContainer.innerHTML : '';
+      showState('result');
+    }, totalDuration + 400);
+  }
+
+  /** Basic fallback renderer when renderer.js is unavailable */
+  function fallbackRender(data) {
+    let html = `<div class="notes-title">${data.title}</div>`;
+    if (data.sections) {
+      data.sections.forEach(section => {
+        html += `<h2>${section.heading}</h2>`;
+        if (section.content) html += `<p>${section.content}</p>`;
+        if (section.callout) {
+          html += `<div class="callout callout-${section.callout.type || 'default'}">
+            <strong>${section.callout.label || 'Note'}:</strong> ${section.callout.text}
+          </div>`;
+        }
+        if (section.table) {
+          html += '<table class="notes-table"><thead><tr>';
+          section.table.headers.forEach(h => { html += `<th>${h}</th>`; });
+          html += '</tr></thead><tbody>';
+          section.table.rows.forEach(row => {
+            html += '<tr>';
+            row.forEach(cell => { html += `<td>${cell}</td>`; });
+            html += '</tr>';
+          });
+          html += '</tbody></table>';
+        }
+        if (section.formula) {
+          html += `<div class="formula-box">${section.formula}</div>`;
+        }
+        if (section.highlights) {
+          html += '<div class="highlights">';
+          section.highlights.forEach(h => {
+            html += `<div class="highlight-item">${h}</div>`;
+          });
+          html += '</div>';
+        }
+      });
+    }
+    if (data.mindmap) {
+      html += '<div class="mindmap"><h3>Mind Map</h3><ul>';
+      data.mindmap.forEach(node => {
+        html += `<li><strong>${node.topic}</strong>: ${node.detail}</li>`;
+      });
+      html += '</ul></div>';
+    }
+    return html;
+  }
+
+  // ============================================================
+  // 5. MOCK AI RESPONSE GENERATOR
+  // ============================================================
+
+  /** Generate realistic structured JSON for a Photosynthesis topic */
+  function generateMockNotes() {
+    return {
+      title: "🌿 Photosynthesis",
+      subtitle: "A Complete Guide to How Plants Make Food",
+      sections: [
+        {
+          heading: "What is Photosynthesis?",
+          content: "Photosynthesis is the biological process by which green plants, algae, and certain bacteria convert light energy (usually from the sun) into chemical energy stored in glucose. This process takes place primarily in the chloroplasts of plant cells, using the green pigment chlorophyll.",
+          callout: {
+            type: "definition",
+            label: "Definition",
+            text: "Photosynthesis: The process of converting light energy into chemical energy (glucose) using carbon dioxide and water, with oxygen released as a byproduct."
+          }
+        },
+        {
+          heading: "The Chemical Equation",
+          formula: "6CO_2 + 6H_2O \\xrightarrow{\\text{light}} C_6H_{12}O_6 + 6O_2",
+          content: "This balanced equation shows that six molecules of carbon dioxide react with six molecules of water, powered by light energy, to produce one molecule of glucose and six molecules of oxygen."
+        },
+        {
+          heading: "Two Main Stages",
+          content: "Photosynthesis occurs in two major stages: the Light-Dependent Reactions and the Calvin Cycle (Light-Independent Reactions). Each stage takes place in a specific part of the chloroplast.",
+          callout: {
+            type: "key-concept",
+            label: "Key Concept",
+            text: "The Light-Dependent Reactions occur in the thylakoid membranes, while the Calvin Cycle takes place in the stroma of the chloroplast."
+          },
+          table: {
+            headers: ["Feature", "Light-Dependent Reactions", "Calvin Cycle"],
+            rows: [
+              ["Location", "Thylakoid membranes", "Stroma"],
+              ["Inputs", "Light, H₂O, NADP⁺, ADP", "CO₂, ATP, NADPH"],
+              ["Outputs", "ATP, NADPH, O₂", "G3P (→ Glucose)"],
+              ["Energy", "Requires light", "Does not require light directly"],
+              ["Duration", "Fast (milliseconds)", "Slower (seconds)"]
+            ]
+          }
+        },
+        {
+          heading: "Light-Dependent Reactions — Detailed",
+          content: "In this stage, light energy is absorbed by chlorophyll and other pigments in Photosystem II (PSII) and Photosystem I (PSI). The energy drives the photolysis of water, generates ATP through chemiosmosis, and produces NADPH as an energy carrier.",
+          highlights: [
+            "⚡ Photolysis of water: 2H₂O → 4H⁺ + O₂ + 4e⁻",
+            "🔋 ATP synthase generates ATP via proton gradient",
+            "🔄 Electron transport chain connects PSII to PSI",
+            "📦 NADP⁺ + 2e⁻ + H⁺ → NADPH (at PSI)"
+          ]
+        },
+        {
+          heading: "The Calvin Cycle",
+          content: "The Calvin Cycle uses ATP and NADPH from the light reactions to fix CO₂ into organic molecules. It consists of three phases: carbon fixation, reduction, and regeneration of the CO₂ acceptor (RuBP).",
+          callout: {
+            type: "definition",
+            label: "Important",
+            text: "RuBisCO is the most abundant protein on Earth. It catalyzes the first step of carbon fixation in the Calvin Cycle."
+          }
+        },
+        {
+          heading: "Factors Affecting Photosynthesis",
+          content: "The rate of photosynthesis is influenced by several environmental factors. Understanding these factors is crucial for agriculture and ecosystem management.",
+          table: {
+            headers: ["Factor", "Effect", "Optimal Range"],
+            rows: [
+              ["Light Intensity", "Increases rate up to saturation point", "1000–2000 μmol/m²/s"],
+              ["CO₂ Concentration", "Higher CO₂ = faster fixation", "400–800 ppm"],
+              ["Temperature", "Enzyme-dependent; too hot denatures", "25–35°C"],
+              ["Water Availability", "Required for photolysis", "Adequate soil moisture"],
+              ["Chlorophyll Content", "More chlorophyll = more light absorbed", "Species-dependent"]
+            ]
+          }
+        },
+        {
+          heading: "C3, C4, and CAM Plants",
+          content: "Different plant species have evolved distinct carbon fixation strategies to adapt to various environments.",
+          highlights: [
+            "🌱 C3 plants (e.g., rice, wheat): Calvin Cycle only; common in temperate climates",
+            "🌿 C4 plants (e.g., corn, sugarcane): Use PEP carboxylase to concentrate CO₂; hot environments",
+            "🌵 CAM plants (e.g., cacti, pineapple): Open stomata at night to conserve water; arid environments"
+          ]
+        }
+      ],
+      mindmap: [
+        { topic: "Photosynthesis", detail: "Light energy → Chemical energy (glucose)" },
+        { topic: "Light Reactions", detail: "Thylakoid → ATP + NADPH + O₂" },
+        { topic: "Calvin Cycle", detail: "Stroma → CO₂ fixation → G3P" },
+        { topic: "Key Enzyme", detail: "RuBisCO fixes CO₂ to RuBP" },
+        { topic: "Environmental Factors", detail: "Light, CO₂, temperature, water" },
+        { topic: "Plant Adaptations", detail: "C3, C4, CAM pathways" }
+      ]
+    };
+  }
+
+  // ============================================================
+  // 6. EXPORT FUNCTIONALITY
+  // ============================================================
+
+  /** Export as PDF using the browser print dialog */
+  function exportPDF() {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Pop-up blocked. Please allow pop-ups for this site.');
+      return;
+    }
+
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map(el => el.outerHTML)
+      .join('\n');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>AI Study PDF — Notes</title>
+        ${styles}
+        <style>
+          body { padding: 40px; max-width: 800px; margin: 0 auto; font-family: 'Inter', sans-serif; }
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="notes-container theme-${currentTheme}">
+          ${notesContainer ? notesContainer.innerHTML : ''}
+        </div>
+        <script>window.onload = () => { window.print(); window.close(); }<\/script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  }
+
+  /** Export as a standalone HTML file with inline styles */
+  function exportHTML() {
+    const cssLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+      .map(el => `<link rel="stylesheet" href="${el.href}">`)
+      .join('\n    ');
+
+    const content = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Study PDF — Notes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Kalam:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <style>
+    body { margin: 0; padding: 40px; background: #f5f5f5; font-family: 'Inter', sans-serif; }
+    .notes-container { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .notes-title { font-size: 28px; font-weight: 700; margin-bottom: 24px; color: #1a1a2e; }
+    h2 { font-size: 20px; font-weight: 600; margin-top: 28px; margin-bottom: 12px; color: #2d3436; }
+    p { line-height: 1.7; color: #444; margin-bottom: 12px; }
+    .callout { padding: 16px 20px; border-radius: 8px; margin: 16px 0; border-left: 4px solid; }
+    .callout-definition { background: #e3f2fd; border-color: #1976d2; }
+    .callout-key-concept { background: #e8f5e9; border-color: #388e3c; }
+    .callout-important { background: #fff3e0; border-color: #f57c00; }
+    .callout strong { display: block; margin-bottom: 4px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .formula-box { background: #f8f9fa; padding: 16px; border-radius: 8px; text-align: center; font-size: 18px; font-family: 'Kalam', cursive; margin: 16px 0; border: 1px dashed #ccc; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+    th { background: #f0f0f0; padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #ddd; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:hover td { background: #fafafa; }
+    .highlights { margin: 16px 0; }
+    .highlight-item { padding: 10px 14px; background: #fffde7; border-left: 3px solid #fbc02d; margin-bottom: 8px; border-radius: 4px; font-size: 14px; }
+    .mindmap { margin-top: 24px; }
+    .mindmap h3 { font-size: 18px; margin-bottom: 12px; }
+    .mindmap ul { list-style: none; padding: 0; }
+    .mindmap li { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+    .mindmap li strong { color: #2d3436; }
+  </style>
+</head>
+<body>
+  <div class="notes-container theme-${currentTheme}">
+    ${notesContainer ? notesContainer.innerHTML : ''}
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ai-study-notes.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /** Export as Markdown */
+  function exportMarkdown() {
+    let md = '';
+
+    if (lastStructuredData) {
+      const d = lastStructuredData;
+      md += `# ${d.title}\n\n`;
+      if (d.subtitle) md += `_${d.subtitle}_\n\n`;
+
+      if (d.sections) {
+        d.sections.forEach(section => {
+          md += `## ${section.heading}\n\n`;
+
+          if (section.content) {
+            md += `${section.content}\n\n`;
+          }
+
+          if (section.callout) {
+            md += `> **${section.callout.label}:** ${section.callout.text}\n\n`;
+          }
+
+          if (section.formula) {
+            md += `**Formula:** \`${section.formula}\`\n\n`;
+          }
+
+          if (section.table) {
+            md += '| ' + section.table.headers.join(' | ') + ' |\n';
+            md += '| ' + section.table.headers.map(() => '---').join(' | ') + ' |\n';
+            section.table.rows.forEach(row => {
+              md += '| ' + row.join(' | ') + ' |\n';
+            });
+            md += '\n';
+          }
+
+          if (section.highlights) {
+            section.highlights.forEach(h => {
+              md += `- ${h}\n`;
+            });
+            md += '\n';
+          }
+        });
+      }
+
+      if (d.mindmap) {
+        md += `## Mind Map\n\n`;
+        d.mindmap.forEach(node => {
+          md += `- **${node.topic}:** ${node.detail}\n`;
+        });
+        md += '\n';
+      }
+    } else {
+      // Fallback: extract text from the rendered HTML
+      md += '# AI Study Notes\n\n';
+      const container = notesContainer || notesPreview;
+      if (container) {
+        const text = container.innerText || container.textContent;
+        md += text;
+      }
+    }
+
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ai-study-notes.md';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // Bind export buttons
+  if (exportPdf) exportPdf.addEventListener('click', exportPDF);
+  if (exportHtml) exportHtml.addEventListener('click', exportHTML);
+  if (exportMd) exportMd.addEventListener('click', exportMarkdown);
+
+  // ============================================================
+  // 7. ZOOM & RESULT VIEW CONTROLS
+  // ============================================================
+  function setZoom(level) {
+    currentZoom = Math.max(0.5, Math.min(2, level));
+    const canvas = document.getElementById('resultCanvas');
+    if (canvas) {
+      canvas.style.transform = `scale(${currentZoom})`;
+      canvas.style.transformOrigin = 'top center';
+    }
+  }
+
+  if (btnZoomIn) {
+    btnZoomIn.addEventListener('click', () => setZoom(currentZoom + 0.1));
+  }
+  if (btnZoomOut) {
+    btnZoomOut.addEventListener('click', () => setZoom(currentZoom - 0.1));
+  }
+  if (btnReset) {
+    btnReset.addEventListener('click', () => setZoom(1));
+  }
+  if (btnNewUpload) {
+    btnNewUpload.addEventListener('click', () => {
+      uploadedFile = null;
+      currentNotesHTML = '';
+      lastStructuredData = null;
+      resetUploadZone();
+      showState('upload');
+    });
+  }
+
+  // ============================================================
+  // INIT: Apply saved theme and show upload state
+  // ============================================================
+  showState('upload');
+});

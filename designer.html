@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Study PDF — Notes Designer</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Kalam:wght@300;400;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+
+  <link rel="stylesheet" href="designer.css">
+</head>
+<body>
+  <nav class="top-toolbar">
+    <div class="toolbar-left">
+      <a href="index.html" class="logo">📝 AI Study PDF</a>
+    </div>
+    <div class="toolbar-right">
+      <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">
+        <span class="icon-sun">☀️</span>
+        <span class="icon-moon">🌙</span>
+      </button>
+      <a href="index.html" class="btn-back">← Back to Home</a>
+    </div>
+  </nav>
+
+  <div class="app-layout">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <section class="sidebar-section">
+        <h3 class="sidebar-heading">Upload</h3>
+        <div class="upload-zone" id="uploadZone">
+          <div class="upload-zone-inner">
+            <div class="upload-icon">📷</div>
+            <p class="upload-text">Drag & drop a notebook page</p>
+            <p class="upload-subtext">or click to browse</p>
+          </div>
+          <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
+        </div>
+        <button class="btn-camera" id="cameraBtn">📸 Open Camera</button>
+      </section>
+
+      <section class="sidebar-section">
+        <h3 class="sidebar-heading">Theme</h3>
+        <div class="style-grid" id="styleGrid">
+          <button class="style-btn active" data-theme="minimal" title="Minimal">
+            <span class="style-swatch" style="background:linear-gradient(135deg,#f8f9fa,#e9ecef)"></span>
+            <span class="style-label">Minimal</span>
+          </button>
+          <button class="style-btn" data-theme="medical" title="Medical">
+            <span class="style-swatch" style="background:linear-gradient(135deg,#e3f2fd,#bbdefb)"></span>
+            <span class="style-label">Medical</span>
+          </button>
+          <button class="style-btn" data-theme="engineering" title="Engineering">
+            <span class="style-swatch" style="background:linear-gradient(135deg,#fff3e0,#ffe0b2)"></span>
+            <span class="style-label">Engineering</span>
+          </button>
+          <button class="style-btn" data-theme="cute" title="Cute">
+            <span class="style-swatch" style="background:linear-gradient(135deg,#fce4ec,#f8bbd0)"></span>
+            <span class="style-label">Cute</span>
+          </button>
+          <button class="style-btn" data-theme="dark" title="Dark">
+            <span class="style-swatch" style="background:linear-gradient(135deg,#263238,#37474f)"></span>
+            <span class="style-label">Dark</span>
+          </button>
+          <button class="style-btn" data-theme="notebook" title="Notebook">
+            <span class="style-swatch" style="background:linear-gradient(135deg,#fffde7,#fff9c4)"></span>
+            <span class="style-label">Notebook</span>
+          </button>
+          <button class="style-btn" data-theme="apple" title="Apple">
+            <span class="style-swatch" style="background:linear-gradient(135deg,#f5f5f7,#d2d2d7)"></span>
+            <span class="style-label">Apple</span>
+          </button>
+          <button class="style-btn" data-theme="goodnotes" title="GoodNotes">
+            <span class="style-swatch" style="background:linear-gradient(135deg,#e8f5e9,#c8e6c9)"></span>
+            <span class="style-label">GoodNotes</span>
+          </button>
+          <button class="style-btn" data-theme="pinterest" title="Pinterest">
+            <span class="style-swatch" style="background:linear-gradient(135deg,#ede7f6,#d1c4e9)"></span>
+            <span class="style-label">Pinterest</span>
+          </button>
+          <button class="style-btn" data-theme="exam" title="Exam">
+            <span class="style-swatch" style="background:linear-gradient(135deg,#fff8e1,#ffecb3)"></span>
+            <span class="style-label">Exam</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="sidebar-section">
+        <h3 class="sidebar-heading">Export</h3>
+        <div class="export-buttons">
+          <button class="btn-export btn-export-pdf" id="exportPdf">📄 Export PDF</button>
+          <button class="btn-export btn-export-html" id="exportHtml">🌐 Export HTML</button>
+          <button class="btn-export btn-export-md" id="exportMd">📝 Export Markdown</button>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Upload State -->
+      <div class="state-upload" id="stateUpload">
+        <div class="state-upload-inner">
+          <div class="state-upload-icon">📄</div>
+          <h2>Upload a notebook page to get started</h2>
+          <p>Supports JPG, PNG, and HEIC images</p>
+        </div>
+      </div>
+
+      <!-- Processing State -->
+      <div class="state-processing hidden" id="stateProcessing">
+        <div class="pipeline">
+          <div class="pipeline-step" data-step="enhance">
+            <div class="step-spinner"></div>
+            <span class="step-label">Enhancing</span>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-step" data-step="read">
+            <div class="step-spinner"></div>
+            <span class="step-label">Reading</span>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-step" data-step="understand">
+            <div class="step-spinner"></div>
+            <span class="step-label">Understanding</span>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-step" data-step="design">
+            <div class="step-spinner"></div>
+            <span class="step-label">Designing</span>
+          </div>
+        </div>
+        <p class="processing-status" id="processingStatus">Enhancing image quality...</p>
+      </div>
+
+      <!-- Result State -->
+      <div class="state-result hidden" id="stateResult">
+        <div class="result-actions">
+          <button class="btn-icon" id="btnZoomIn" title="Zoom in">🔍+</button>
+          <button class="btn-icon" id="btnZoomOut" title="Zoom out">🔍−</button>
+          <button class="btn-icon" id="btnReset" title="Reset view">↺</button>
+          <button class="btn-icon" id="btnNewUpload" title="New upload">➕</button>
+        </div>
+        <div class="result-canvas" id="resultCanvas">
+          <div class="notes-preview" id="notesPreview"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Panel -->
+    <aside class="note-preview" id="notePreviewPanel">
+      <div class="preview-header">
+        <h3 class="preview-theme-name" id="previewThemeName">Minimal</h3>
+        <span class="preview-badge">Live Preview</span>
+      </div>
+      <div class="notes-container" id="notesContainer">
+        <div class="preview-placeholder">
+          <p>Your styled notes will appear here</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: false, theme: 'default' });</script>
+  <script src="renderer.js"></script>
+  <script src="designer.js"></script>
+</body>
+</html>

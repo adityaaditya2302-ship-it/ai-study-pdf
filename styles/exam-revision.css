@@ -1,0 +1,285 @@
+.notes-theme-exam-revision {
+  --accent: #8b5cf6;
+  --accent-dark: #7c3aed;
+  --accent-light: #f5f3ff;
+  --accent-border: #ddd6fe;
+  --text: #1e1b4b;
+  --text-secondary: #4c1d95;
+  --bg: #faf9ff;
+  --card-bg: #ffffff;
+  --border: #e9e5f5;
+  --font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --radius: 6px;
+  --shadow: 0 1px 3px rgba(139,92,246,0.08);
+
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.55;
+  padding: 1.25rem;
+  max-width: 920px;
+  margin: 0 auto;
+  font-size: 0.9rem;
+}
+
+.notes-theme-exam-revision * {
+  box-sizing: border-box;
+}
+
+.notes-theme-exam-revision .note-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--accent-dark);
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notes-theme-exam-revision .note-title::before {
+  content: '\23F1';
+  font-size: 1.1rem;
+}
+
+.notes-theme-exam-revision .note-callout {
+  background: var(--accent-light);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 0.6rem 0.85rem;
+  margin: 0.6rem 0;
+  font-size: 0.85rem;
+}
+
+.notes-theme-exam-revision .note-callout.note-callout-warning {
+  background: #fefce8;
+  border-left-color: #eab308;
+}
+
+.notes-theme-exam-revision .note-callout.note-callout-danger {
+  background: #fef2f2;
+  border-left-color: #ef4444;
+}
+
+.notes-theme-exam-revision .note-callout.note-callout-success {
+  background: #f0fdf4;
+  border-left-color: #22c55e;
+}
+
+.notes-theme-exam-revision .note-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.6rem 0;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.notes-theme-exam-revision .note-table thead {
+  background: var(--accent);
+  color: white;
+}
+
+.notes-theme-exam-revision .note-table th {
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.notes-theme-exam-revision .note-table td {
+  padding: 0.4rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.notes-theme-exam-revision .note-table tbody tr:hover {
+  background: var(--accent-light);
+}
+
+.notes-theme-exam-revision .note-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.notes-theme-exam-revision .note-formula {
+  background: var(--accent-light);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+  margin: 0.6rem 0;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  text-align: center;
+  overflow-x: auto;
+}
+
+.notes-theme-exam-revision .note-highlight {
+  background: linear-gradient(120deg, #c4b5fd 0%, #c4b5fd 100%);
+  background-size: 100% 40%;
+  background-repeat: no-repeat;
+  background-position: 0 88%;
+  padding: 0 3px;
+  border-radius: 2px;
+  font-weight: 600;
+  transition: background-size 0.15s ease;
+}
+
+.notes-theme-exam-revision .note-highlight:hover {
+  background-size: 100% 100%;
+}
+
+.notes-theme-exam-revision .note-list {
+  margin: 0.5rem 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.notes-theme-exam-revision .note-list li {
+  padding: 0.2rem 0 0.2rem 1.5rem;
+  position: relative;
+}
+
+.notes-theme-exam-revision .note-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.notes-theme-exam-revision .note-list.note-list-numbered {
+  list-style: none;
+  counter-reset: item;
+}
+
+.notes-theme-exam-revision .note-list.note-list-numbered li {
+  counter-increment: item;
+}
+
+.notes-theme-exam-revision .note-list.note-list-numbered li::before {
+  content: counter(item);
+  background: none;
+  color: var(--accent-dark);
+  font-weight: 800;
+  font-size: 0.8rem;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+}
+
+.notes-theme-exam-revision .mermaid {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.notes-theme-exam-revision .timeline {
+  position: relative;
+  padding-left: 1.5rem;
+  margin: 1rem 0;
+}
+
+.notes-theme-exam-revision .timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent-border);
+}
+
+.notes-theme-exam-revision .timeline-item {
+  position: relative;
+  padding: 0.35rem 0 0.35rem 1rem;
+  font-size: 0.85rem;
+}
+
+.notes-theme-exam-revision .timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -1.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.notes-theme-exam-revision .timeline-item:hover {
+  background: var(--accent-light);
+}
+
+.notes-theme-exam-revision code {
+  font-family: var(--mono);
+  background: var(--accent-light);
+  border: 1px solid var(--accent-border);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.82em;
+  color: var(--accent-dark);
+}
+
+.notes-theme-exam-revision blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 0.5rem 0;
+  padding: 0.4rem 0.85rem;
+  background: var(--accent-light);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.notes-theme-exam-revision h2 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-top: 1.25rem;
+  margin-bottom: 0.4rem;
+  color: var(--accent-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid var(--accent-border);
+}
+
+.notes-theme-exam-revision h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.3rem;
+  color: var(--text);
+}
+
+.notes-theme-exam-revision p {
+  margin: 0.4rem 0;
+}
+
+.notes-theme-exam-revision a {
+  color: var(--accent-dark);
+  text-decoration: none;
+  border-bottom: 1px solid var(--accent-border);
+  transition: border-color 0.2s;
+}
+
+.notes-theme-exam-revision a:hover {
+  border-bottom-color: var(--accent);
+}
+
+.notes-theme-exam-revision strong {
+  font-weight: 700;
+  color: var(--accent-dark);
+}

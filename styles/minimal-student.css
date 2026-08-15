@@ -1,0 +1,277 @@
+.notes-theme-minimal-student {
+  --accent: #3b82f6;
+  --accent-light: #eff6ff;
+  --accent-border: #bfdbfe;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --bg: #ffffff;
+  --card-bg: #f8fafc;
+  --border: #e2e8f0;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);
+
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.7;
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.notes-theme-minimal-student * {
+  box-sizing: border-box;
+}
+
+.notes-theme-minimal-student .note-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--accent);
+  letter-spacing: -0.02em;
+}
+
+.notes-theme-minimal-student .note-title::after {
+  content: '';
+  display: block;
+  width: 60px;
+  height: 3px;
+  background: var(--accent);
+  margin-top: 0.5rem;
+  border-radius: 2px;
+}
+
+.notes-theme-minimal-student .note-callout {
+  background: var(--accent-light);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin: 1.25rem 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.notes-theme-minimal-student .note-callout:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow);
+}
+
+.notes-theme-minimal-student .note-callout.note-callout-warning {
+  background: #fffbeb;
+  border-left-color: #f59e0b;
+}
+
+.notes-theme-minimal-student .note-callout.note-callout-danger {
+  background: #fef2f2;
+  border-left-color: #ef4444;
+}
+
+.notes-theme-minimal-student .note-callout.note-callout-success {
+  background: #f0fdf4;
+  border-left-color: #22c55e;
+}
+
+.notes-theme-minimal-student .note-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.notes-theme-minimal-student .note-table thead {
+  background: var(--accent);
+  color: #fff;
+}
+
+.notes-theme-minimal-student .note-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.notes-theme-minimal-student .note-table td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.notes-theme-minimal-student .note-table tbody tr:hover {
+  background: var(--accent-light);
+}
+
+.notes-theme-minimal-student .note-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.notes-theme-minimal-student .note-formula {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin: 1.25rem 0;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  text-align: center;
+  overflow-x: auto;
+}
+
+.notes-theme-minimal-student .note-highlight {
+  background: linear-gradient(120deg, #fef08a 0%, #fef08a 100%);
+  background-size: 100% 40%;
+  background-repeat: no-repeat;
+  background-position: 0 88%;
+  padding: 0 4px;
+  border-radius: 2px;
+  transition: background-size 0.2s ease;
+}
+
+.notes-theme-minimal-student .note-highlight:hover {
+  background-size: 100% 100%;
+}
+
+.notes-theme-minimal-student .note-list {
+  margin: 1rem 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.notes-theme-minimal-student .note-list li {
+  padding: 0.4rem 0 0.4rem 1.5rem;
+  position: relative;
+}
+
+.notes-theme-minimal-student .note-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.notes-theme-minimal-student .note-list.note-list-numbered {
+  list-style: none;
+  counter-reset: item;
+}
+
+.notes-theme-minimal-student .note-list.note-list-numbered li {
+  counter-increment: item;
+}
+
+.notes-theme-minimal-student .note-list.note-list-numbered li::before {
+  content: counter(item);
+  background: none;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.85rem;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+}
+
+.notes-theme-minimal-student .mermaid {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.notes-theme-minimal-student .timeline {
+  position: relative;
+  padding-left: 2rem;
+  margin: 1.5rem 0;
+}
+
+.notes-theme-minimal-student .timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent-border);
+}
+
+.notes-theme-minimal-student .timeline-item {
+  position: relative;
+  padding: 0.75rem 0 0.75rem 1.5rem;
+}
+
+.notes-theme-minimal-student .timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -2.35rem;
+  top: 1rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.notes-theme-minimal-student .timeline-item:hover {
+  transform: translateX(4px);
+}
+
+.notes-theme-minimal-student code {
+  font-family: var(--mono);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.notes-theme-minimal-student blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 1rem 0;
+  padding: 0.75rem 1.25rem;
+  background: var(--card-bg);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.notes-theme-minimal-student h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+.notes-theme-minimal-student h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.notes-theme-minimal-student p {
+  margin: 0.75rem 0;
+}
+
+.notes-theme-minimal-student a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.notes-theme-minimal-student a:hover {
+  border-bottom-color: var(--accent);
+}

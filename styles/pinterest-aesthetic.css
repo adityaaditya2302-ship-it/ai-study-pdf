@@ -1,0 +1,360 @@
+.notes-theme-pinterest-aesthetic {
+  --accent: #ef4444;
+  --accent-dark: #dc2626;
+  --accent-light: #fef2f2;
+  --accent-border: #fecaca;
+  --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --text: #1f2937;
+  --text-secondary: #6b7280;
+  --bg: #fafafa;
+  --card-bg: #ffffff;
+  --border: #f3f4f6;
+  --font: 'Poppins', 'Montserrat', 'Inter', system-ui, sans-serif;
+  --mono: 'Fira Code', monospace;
+  --radius: 16px;
+  --shadow: 0 4px 20px rgba(0,0,0,0.06);
+  --shadow-hover: 0 8px 30px rgba(0,0,0,0.12);
+
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.7;
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.notes-theme-pinterest-aesthetic * {
+  box-sizing: border-box;
+}
+
+.notes-theme-pinterest-aesthetic .note-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  background: var(--gradient-2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.notes-theme-pinterest-aesthetic .note-callout {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin: 1.25rem 0;
+  box-shadow: var(--shadow);
+  border: none;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.notes-theme-pinterest-aesthetic .note-callout:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+}
+
+.notes-theme-pinterest-aesthetic .note-callout::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-1);
+}
+
+.notes-theme-pinterest-aesthetic .note-callout.note-callout-info::before {
+  background: var(--gradient-3);
+}
+
+.notes-theme-pinterest-aesthetic .note-callout.note-callout-warning::before {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+}
+
+.notes-theme-pinterest-aesthetic .note-callout.note-callout-danger::before {
+  background: var(--gradient-2);
+}
+
+.notes-theme-pinterest-aesthetic .note-callout.note-callout-success::before {
+  background: linear-gradient(135deg, #34d399, #10b981);
+}
+
+.notes-theme-pinterest-aesthetic .note-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.25rem 0;
+  font-size: 0.88rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: none;
+}
+
+.notes-theme-pinterest-aesthetic .note-table thead {
+  background: var(--gradient-2);
+  color: white;
+}
+
+.notes-theme-pinterest-aesthetic .note-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.notes-theme-pinterest-aesthetic .note-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.notes-theme-pinterest-aesthetic .note-table tbody tr {
+  background: var(--card-bg);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.notes-theme-pinterest-aesthetic .note-table tbody tr:hover {
+  transform: scale(1.01);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.notes-theme-pinterest-aesthetic .note-table tbody tr:nth-child(even) {
+  background: var(--accent-light);
+}
+
+.notes-theme-pinterest-aesthetic .note-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.notes-theme-pinterest-aesthetic .note-formula {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin: 1.25rem 0;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  text-align: center;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow-x: auto;
+}
+
+.notes-theme-pinterest-aesthetic .note-formula::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  padding: 2px;
+  background: var(--gradient-1);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.notes-theme-pinterest-aesthetic .note-highlight {
+  background: linear-gradient(120deg, rgba(244,114,182,0.3) 0%, rgba(244,114,182,0.3) 100%);
+  background-size: 100% 40%;
+  background-repeat: no-repeat;
+  background-position: 0 88%;
+  padding: 0 6px;
+  border-radius: 6px;
+  transition: background-size 0.2s ease;
+}
+
+.notes-theme-pinterest-aesthetic .note-highlight:hover {
+  background-size: 100% 100%;
+}
+
+.notes-theme-pinterest-aesthetic .note-list {
+  margin: 1rem 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.notes-theme-pinterest-aesthetic .note-list li {
+  padding: 0.5rem 0 0.5rem 2rem;
+  position: relative;
+}
+
+.notes-theme-pinterest-aesthetic .note-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--gradient-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notes-theme-pinterest-aesthetic .note-list.note-list-numbered {
+  list-style: none;
+  counter-reset: item;
+}
+
+.notes-theme-pinterest-aesthetic .note-list.note-list-numbered li {
+  counter-increment: item;
+}
+
+.notes-theme-pinterest-aesthetic .note-list.note-list-numbered li::before {
+  content: counter(item);
+  color: white;
+  font-weight: 700;
+  font-size: 0.75rem;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notes-theme-pinterest-aesthetic .mermaid {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.notes-theme-pinterest-aesthetic .timeline {
+  position: relative;
+  padding-left: 2.5rem;
+  margin: 1.5rem 0;
+}
+
+.notes-theme-pinterest-aesthetic .timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--gradient-2);
+  border-radius: 2px;
+}
+
+.notes-theme-pinterest-aesthetic .timeline-item {
+  position: relative;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.notes-theme-pinterest-aesthetic .timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -2.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gradient-2);
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.notes-theme-pinterest-aesthetic .timeline-item:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: var(--shadow-hover);
+}
+
+.notes-theme-pinterest-aesthetic code {
+  font-family: var(--mono);
+  background: var(--accent-light);
+  border: 1px solid var(--accent-border);
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.85em;
+  color: var(--accent-dark);
+}
+
+.notes-theme-pinterest-aesthetic blockquote {
+  margin: 1rem 0;
+  padding: 1.25rem 1.5rem;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: var(--text-secondary);
+  font-style: italic;
+  position: relative;
+  border-left: none;
+}
+
+.notes-theme-pinterest-aesthetic blockquote::before {
+  content: '\201C';
+  position: absolute;
+  top: -0.25rem;
+  left: 1rem;
+  font-size: 3rem;
+  background: var(--gradient-2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  opacity: 0.3;
+}
+
+.notes-theme-pinterest-aesthetic h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  position: relative;
+  display: inline-block;
+}
+
+.notes-theme-pinterest-aesthetic h2::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-2);
+  border-radius: 2px;
+}
+
+.notes-theme-pinterest-aesthetic h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.notes-theme-pinterest-aesthetic p {
+  margin: 0.75rem 0;
+}
+
+.notes-theme-pinterest-aesthetic a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.notes-theme-pinterest-aesthetic a:hover {
+  border-bottom-color: var(--accent);
+}
+
+.notes-theme-pinterest-aesthetic strong {
+  font-weight: 700;
+}
