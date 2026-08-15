@@ -116,20 +116,24 @@ document.addEventListener('DOMContentLoaded', () => {
         <p class="upload-text">Drag & drop a notebook page</p>
         <p class="upload-subtext">or click to browse</p>
       </div>
-      <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
     `;
   }
 
   function openFilePicker() {
-    const input = document.getElementById('fileInput');
-    if (input) input.click();
-  }
-
-  function handleFileSelect(e) {
-    const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      processFiles(files[0]);
-    }
+    // Always create a fresh file input to avoid stale references
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length > 0) {
+        processFiles(files[0]);
+      }
+      document.body.removeChild(input);
+    });
+    input.click();
   }
 
   function processFiles(file) {
@@ -163,12 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-  document.addEventListener('change', (e) => {
-    if (e.target.id === 'fileInput' && e.target.files && e.target.files.length > 0) {
-      handleFileSelect(e);
-    }
-  });
-
   // -- Drag and drop --
   if (uploadZone) {
     uploadZone.addEventListener('dragover', (e) => {
