@@ -300,38 +300,173 @@ document.addEventListener('DOMContentLoaded', () => {
     showState('processing');
 
     const totalDuration = animatePipeline();
+    const apiKey = document.getElementById('apiKeyInput')?.value?.trim();
 
-    // After all steps complete, generate notes
     setTimeout(() => {
-      const mockData = generateMockNotes();
-      lastStructuredData = mockData;
-
-      // Call the renderer (from renderer.js) and write to DOM
-      if (typeof renderNotes === 'function') {
-        const renderedHTML = renderNotes(mockData, currentTheme);
-        if (notesContainer) {
-          notesContainer.innerHTML = renderedHTML;
-        }
-        // Also show in result canvas
-        const notesPreview = document.getElementById('notesPreview');
-        if (notesPreview) {
-          notesPreview.innerHTML = renderedHTML;
-        }
-        // Re-init Mermaid diagrams if available
-        if (typeof mermaid !== 'undefined' && mermaid.init) {
-          try { mermaid.init(undefined, '.mermaid'); } catch(e) {}
-        }
+      if (apiKey) {
+        processWithGemini(apiKey);
       } else {
-        // Fallback: render basic HTML if renderer.js not loaded
-        const html = fallbackRender(mockData);
-        if (notesContainer) notesContainer.innerHTML = html;
-        const notesPreview = document.getElementById('notesPreview');
-        if (notesPreview) notesPreview.innerHTML = html;
+        // Fallback to mock data if no API key
+        const mockData = generateMockNotes();
+        lastStructuredData = mockData;
+        renderAndShow(mockData);
+      }
+    }, totalDuration + 400);
+  }
+
+  /** Process image with Gemini Vision API */
+  async function processWithGemini(apiKey) {
+    try {
+      if (processingStatus) processingStatus.textContent = 'Sending to Gemini AI...';
+
+      // Convert uploaded file to base64
+      const base64 = await fileToBase64(uploadedFile);
+      const mimeType = uploadedFile.type || 'image/jpeg';
+
+      const prompt = `You are an expert study notes organizer. Analyze this handwritten notebook page image and extract ALL the content.
+
+Return ONLY a valid JSON object (no markdown, no code fences) with this exact structure:
+{
+  "title": "Main topic title from the notes",
+  "subtitle": "Brief subtitle or subject area",
+  "sections": [
+    {
+      "type": "heading",
+      "content": "Section heading text"
+    },
+    {
+      "type": "text",
+      "content": "Paragraph text explaining the concept"
+    },
+    {
+      "type": "callout",
+      "variant": "definition",
+      "title": "Label like 'Definition'",
+      "content": "Important definition or concept"
+    },
+    {
+      "type": "callout",
+      "variant": "key-concept",
+      "title": "Label",
+      "content": "Key concept explanation"
+    },
+    {
+      "type": "table",
+      "headers": ["Column1", "Column2"],
+      "rows": [["val1", "val2"]]
+    },
+    {
+      "type": "formula",
+      "latex": "LaTeX formula here",
+      "label": "What this formula represents"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": ["Item 1", "Item 2"]
+    },
+    {
+      "type": "highlight",
+      "content": "Important highlighted text",
+      "color": "yellow"
+    }
+  ]
+}
+
+Rules:
+- Extract ALL text from the handwritten notes accurately
+- Use "heading" type for section titles
+- Use "text" type for explanations
+- Use "callout" with variant "definition" for definitions, "key-concept" for key ideas, "tip" for tips
+- Use "table" for any tabular/comparison data
+- Use "formula" for any mathematical formulas (convert to LaTeX)
+- Use "list" for bullet points
+- Preserve the logical structure and hierarchy
+- Return ONLY the JSON object, nothing else`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType: mimeType, data: base64 } }
+              ]
+            }],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 8192
+            }
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || `API error ${response.status}`);
       }
 
-      currentNotesHTML = notesContainer ? notesContainer.innerHTML : '';
-      showState('result');
-    }, totalDuration + 400);
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+      // Parse JSON from response (handle possible markdown code fences)
+      let jsonStr = text.trim();
+      if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+      }
+
+      const structuredData = JSON.parse(jsonStr);
+
+      // Validate basic structure
+      if (!structuredData.title || !structuredData.sections) {
+        throw new Error('Invalid response structure from AI');
+      }
+
+      lastStructuredData = structuredData;
+      renderAndShow(structuredData);
+
+    } catch (error) {
+      console.error('Gemini API error:', error);
+      alert('AI processing failed: ' + error.message + '\n\nFalling back to demo notes.');
+      // Fallback to mock data
+      const mockData = generateMockNotes();
+      lastStructuredData = mockData;
+      renderAndShow(mockData);
+    }
+  }
+
+  /** Convert file to base64 string */
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /** Render notes and switch to result view */
+  function renderAndShow(data) {
+    if (typeof renderNotes === 'function') {
+      const renderedHTML = renderNotes(data, currentTheme);
+      if (notesContainer) notesContainer.innerHTML = renderedHTML;
+      if (notesPreview) notesPreview.innerHTML = renderedHTML;
+      if (typeof mermaid !== 'undefined' && mermaid.init) {
+        try { mermaid.init(undefined, '.mermaid'); } catch(e) {}
+      }
+    } else {
+      const html = fallbackRender(data);
+      if (notesContainer) notesContainer.innerHTML = html;
+      if (notesPreview) notesPreview.innerHTML = html;
+    }
+    currentNotesHTML = notesContainer ? notesContainer.innerHTML : '';
+    showState('result');
   }
 
   /** Basic fallback renderer when renderer.js is unavailable */

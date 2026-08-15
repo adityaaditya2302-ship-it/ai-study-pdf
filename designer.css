@@ -308,6 +308,51 @@ body {
   gap: 8px;
 }
 
+/* === API Key Input === */
+.api-key-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.api-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.api-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 12px;
+  font-family: monospace;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.api-input:focus {
+  border-color: var(--color-primary);
+}
+
+.api-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.api-hint a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.api-hint a:hover {
+  text-decoration: underline;
+}
+
 .btn-export {
   width: 100%;
   padding: 10px 14px;
