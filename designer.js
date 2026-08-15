@@ -113,27 +113,22 @@ document.addEventListener('DOMContentLoaded', () => {
     uploadZone.innerHTML = `
       <div class="upload-zone-inner">
         <div class="upload-icon">📷</div>
-        <p class="upload-text">Drag & drop a notebook page</p>
-        <p class="upload-subtext">or click to browse</p>
+        <p class="upload-text">Click to select a photo</p>
+        <p class="upload-subtext">or drag & drop</p>
       </div>
     `;
   }
 
-  function openFilePicker() {
-    // Always create a fresh file input to avoid stale references
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.style.display = 'none';
-    document.body.appendChild(input);
-    input.addEventListener('change', (e) => {
+  // -- File input --
+  const fileInput = document.getElementById('fileInput');
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
       if (files.length > 0) {
         processFiles(files[0]);
       }
-      document.body.removeChild(input);
+      fileInput.value = '';
     });
-    input.click();
   }
 
   function processFiles(file) {
@@ -143,11 +138,11 @@ document.addEventListener('DOMContentLoaded', () => {
     startAIProcessing();
   }
 
-  // -- Click to upload (use event delegation) --
+  // -- Click to upload --
   if (uploadZone) {
     uploadZone.addEventListener('click', (e) => {
       if (e.target.closest('.preview-remove') || e.target.closest('.preview-img')) return;
-      openFilePicker();
+      if (fileInput) fileInput.click();
     });
   }
 
