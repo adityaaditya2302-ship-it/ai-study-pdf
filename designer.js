@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const html = document.documentElement;
   const themeToggle = document.getElementById('themeToggle');
   const uploadZone = document.getElementById('uploadZone');
-  const fileInput = document.getElementById('fileInput');
   const cameraBtn = document.getElementById('cameraBtn');
   const styleGrid = document.getElementById('styleGrid');
   const styleButtons = styleGrid ? styleGrid.querySelectorAll('.style-btn') : [];
@@ -66,13 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================================
   // 2. FILE UPLOAD HANDLING
   // ============================================================
-  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/heic', 'image/heif', 'application/pdf'];
   const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
-  /** Validate file type and size */
   function validateFile(file) {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      alert('Invalid file type. Please upload JPG, PNG, or PDF.');
+    if (!ALLOWED_TYPES.includes(file.type) && !file.type.startsWith('image/')) {
+      alert('Invalid file type. Please upload JPG, PNG, or HEIC.');
       return false;
     }
     if (file.size > MAX_SIZE) {
@@ -82,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   }
 
-  /** Show image preview in the upload zone */
   function showPreview(file) {
     if (!uploadZone) return;
     const reader = new FileReader();
@@ -94,19 +91,15 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="preview-remove" id="removePreview">✕ Remove</button>
         </div>
       `;
-      const removeBtn = document.getElementById('removePreview');
-      if (removeBtn) {
-        removeBtn.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          resetUploadZone();
-          uploadedFile = null;
-        });
-      }
+      document.getElementById('removePreview').addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        resetUploadZone();
+        uploadedFile = null;
+      });
     };
     reader.readAsDataURL(file);
   }
 
-  /** Reset the upload zone back to its default state */
   function resetUploadZone() {
     if (!uploadZone) return;
     uploadZone.innerHTML = `
@@ -117,14 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
     `;
-    // Re-bind file input reference
-    const newInput = document.getElementById('fileInput');
-    if (newInput) {
-      newInput.addEventListener('change', handleFileSelect);
-    }
   }
 
-  /** Handle files selected via input */
+  function openFilePicker() {
+    const input = document.getElementById('fileInput');
+    if (input) input.click();
+  }
+
   function handleFileSelect(e) {
     const files = Array.from(e.target.files);
     if (files.length > 0) {
@@ -132,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  /** Process a single file: validate, preview, start AI */
   function processFiles(file) {
     if (!validateFile(file)) return;
     uploadedFile = file;
@@ -140,19 +131,20 @@ document.addEventListener('DOMContentLoaded', () => {
     startAIProcessing();
   }
 
-  // -- Click to upload --
+  // -- Click to upload (use event delegation) --
   if (uploadZone) {
     uploadZone.addEventListener('click', (e) => {
-      // Don't trigger if clicking the remove button or preview image
       if (e.target.closest('.preview-remove') || e.target.closest('.preview-img')) return;
-      fileInput.click();
+      openFilePicker();
     });
   }
 
-  // -- File input change --
-  if (fileInput) {
-    fileInput.addEventListener('change', handleFileSelect);
-  }
+  // -- File input change (use event delegation on document) --
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'fileInput' && e.target.files && e.target.files.length > 0) {
+      handleFileSelect(e);
+    }
+  });
 
   // -- Drag and drop --
   if (uploadZone) {
@@ -182,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // -- Camera capture --
   if (cameraBtn) {
     cameraBtn.addEventListener('click', () => {
-      // Create a temporary file input with capture attribute
       const tempInput = document.createElement('input');
       tempInput.type = 'file';
       tempInput.accept = 'image/*';
@@ -207,31 +198,33 @@ document.addEventListener('DOMContentLoaded', () => {
   /** Apply the selected notes theme to the container */
   function applyNotesTheme(theme) {
     currentTheme = theme;
-    // Remove all existing theme classes from the container
     const themeClasses = [
       'minimal', 'medical', 'engineering', 'cute', 'dark',
       'notebook', 'apple', 'goodnotes', 'pinterest', 'exam'
     ];
+    // Update right panel
     if (notesContainer) {
       themeClasses.forEach(cls => notesContainer.classList.remove(`theme-${cls}`));
       notesContainer.classList.add(`theme-${theme}`);
     }
-    // Update the preview label
+    // Update result canvas
+    const resultCanvas = document.getElementById('resultCanvas');
+    if (resultCanvas) {
+      themeClasses.forEach(cls => resultCanvas.classList.remove(`theme-${cls}`));
+      resultCanvas.classList.add(`theme-${theme}`);
+    }
     if (previewThemeName) {
       previewThemeName.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
     }
-    // Update active button state
     styleButtons.forEach(btn => {
       btn.classList.toggle('active', btn.dataset.theme === theme);
     });
-    // Save preference
     localStorage.setItem('notesTheme', theme);
     // Re-render notes with new theme if content exists
     if (lastStructuredData && typeof renderNotes === 'function') {
       const renderedHTML = renderNotes(lastStructuredData, theme);
-      if (notesContainer) {
-        notesContainer.innerHTML = renderedHTML;
-      }
+      if (notesContainer) notesContainer.innerHTML = renderedHTML;
+      if (notesPreview) notesPreview.innerHTML = renderedHTML;
       currentNotesHTML = notesContainer ? notesContainer.innerHTML : '';
     }
   }
