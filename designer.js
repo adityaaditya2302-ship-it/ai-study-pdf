@@ -154,6 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
     aiProvider.addEventListener('change', () => {
       if (aiProvider.value === 'gemini') {
         apiHint.innerHTML = 'Get free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a>';
+      } else if (aiProvider.value === 'groq') {
+        apiHint.innerHTML = 'Get free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>';
       } else {
         apiHint.innerHTML = 'Get key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>';
       }
@@ -318,6 +320,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (apiKey) {
         if (provider === 'openai') {
           processWithOpenAI(apiKey);
+        } else if (provider === 'groq') {
+          processWithGroq(apiKey);
         } else {
           processWithGemini(apiKey);
         }
@@ -562,6 +566,81 @@ Rules: Extract ALL text accurately. Use heading for titles, text for explanation
 
     } catch (error) {
       console.error('OpenAI API error:', error);
+      alert('AI processing failed: ' + error.message + '\n\nFalling back to demo notes.');
+      const mockData = generateMockNotes();
+      lastStructuredData = mockData;
+      renderAndShow(mockData);
+    }
+  }
+
+  /** Process image with Groq API (Llama 3.2 Vision - Free) */
+  async function processWithGroq(apiKey) {
+    try {
+      if (processingStatus) processingStatus.textContent = 'Sending to Llama Vision...';
+
+      const base64 = await fileToBase64(uploadedFile);
+      const mimeType = uploadedFile.type || 'image/jpeg';
+
+      const prompt = `Analyze this handwritten notebook page. Extract ALL content and return ONLY valid JSON:
+{
+  "title": "Main topic",
+  "subtitle": "Subject area",
+  "sections": [
+    { "type": "heading", "content": "Heading text" },
+    { "type": "text", "content": "Explanation text" },
+    { "type": "callout", "variant": "definition", "title": "Definition", "content": "Definition text" },
+    { "type": "callout", "variant": "key-concept", "title": "Key Concept", "content": "Concept text" },
+    { "type": "table", "headers": ["Col1", "Col2"], "rows": [["val1", "val2"]] },
+    { "type": "formula", "latex": "LaTeX", "label": "Description" },
+    { "type": "list", "ordered": false, "items": ["Item 1"] },
+    { "type": "highlight", "content": "Important text", "color": "yellow" }
+  ]
+}
+Extract everything accurately. Return ONLY JSON.`;
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.2-11b-vision-preview',
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } }
+            ]
+          }],
+          max_tokens: 4096,
+          temperature: 0.3
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || `API error ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.choices?.[0]?.message?.content || '';
+
+      let jsonStr = text.trim();
+      if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+      }
+
+      const structuredData = JSON.parse(jsonStr);
+      if (!structuredData.title || !structuredData.sections) {
+        throw new Error('Invalid response structure');
+      }
+
+      lastStructuredData = structuredData;
+      renderAndShow(structuredData);
+
+    } catch (error) {
+      console.error('Groq API error:', error);
       alert('AI processing failed: ' + error.message + '\n\nFalling back to demo notes.');
       const mockData = generateMockNotes();
       lastStructuredData = mockData;
