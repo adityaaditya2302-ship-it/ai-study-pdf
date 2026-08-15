@@ -32,6 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentZoom = 1;
   let uploadedFile = null;
   let currentNotesHTML = '';
+  let lastStructuredData = null;
+
+  const PIPELINE_STEPS = [
+    { key: 'enhance', label: 'Enhancing image quality...', time: 1200 },
+    { key: 'read', label: 'Reading handwriting...', time: 1800 },
+    { key: 'understand', label: 'Understanding content...', time: 1500 },
+    { key: 'design', label: 'Designing beautiful notes...', time: 1600 }
+  ];
 
   // ============================================================
   // 1. THEME TOGGLE (Dark / Light mode for the page itself)
@@ -245,14 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================================
   // 4. AI PROCESSING SIMULATION
   // ============================================================
-  let lastStructuredData = null;
-
-  const PIPELINE_STEPS = [
-    { key: 'enhance', label: 'Enhancing image quality...', time: 1200 },
-    { key: 'read', label: 'Reading handwriting...', time: 1800 },
-    { key: 'understand', label: 'Understanding content...', time: 1500 },
-    { key: 'design', label: 'Designing beautiful notes...', time: 1600 }
-  ];
 
   /** Switch between view states */
   function showState(state) {
