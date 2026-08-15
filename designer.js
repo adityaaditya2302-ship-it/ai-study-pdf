@@ -495,6 +495,33 @@ Rules:
     });
   }
 
+  /** Compress image to reduce API payload size */
+  function compressImage(file, maxWidth = 1024) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let w = img.width;
+          let h = img.height;
+          if (w > maxWidth) {
+            h = (h * maxWidth) / w;
+            w = maxWidth;
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          resolve(dataUrl.split(',')[1]);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   /** Process image with OpenAI GPT-4o API */
   async function processWithOpenAI(apiKey) {
     try {
@@ -576,10 +603,13 @@ Rules: Extract ALL text accurately. Use heading for titles, text for explanation
   /** Process image with Groq API (Llama 3.2 Vision - Free) */
   async function processWithGroq(apiKey) {
     try {
-      if (processingStatus) processingStatus.textContent = 'Sending to Llama Vision...';
+      if (processingStatus) processingStatus.textContent = 'Compressing image...';
 
-      const base64 = await fileToBase64(uploadedFile);
-      const mimeType = uploadedFile.type || 'image/jpeg';
+      // Compress image for API
+      const base64 = await compressImage(uploadedFile, 1024);
+      const mimeType = 'image/jpeg';
+
+      if (processingStatus) processingStatus.textContent = 'Sending to Llama Vision...';
 
       const prompt = `Analyze this handwritten notebook page. Extract ALL content and return ONLY valid JSON:
 {
@@ -618,13 +648,14 @@ Extract everything accurately. Return ONLY JSON.`;
         })
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error?.message || `API error ${response.status}`);
+        console.error('Groq API response:', responseData);
+        throw new Error(responseData.error?.message || `HTTP ${response.status}: ${JSON.stringify(responseData)}`);
       }
 
-      const data = await response.json();
-      const text = data.choices?.[0]?.message?.content || '';
+      const text = responseData.choices?.[0]?.message?.content || '';
 
       let jsonStr = text.trim();
       if (jsonStr.startsWith('```')) {
