@@ -304,6 +304,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => {
       if (apiKey) {
+        if (!apiKey.startsWith('AIza')) {
+          alert('Invalid API key format. Gemini API keys start with "AIza..."\n\nPlease get a valid key from:\nhttps://aistudio.google.com/apikey');
+          const mockData = generateMockNotes();
+          lastStructuredData = mockData;
+          renderAndShow(mockData);
+          return;
+        }
         processWithGemini(apiKey);
       } else {
         // Fallback to mock data if no API key
@@ -384,32 +391,56 @@ Rules:
 - Preserve the logical structure and hierarchy
 - Return ONLY the JSON object, nothing else`;
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: prompt },
-                { inlineData: { mimeType: mimeType, data: base64 } }
-              ]
-            }],
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 8192
-            }
-          })
-        }
-      );
+      // Try multiple model endpoints
+      const models = [
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-1.5-pro',
+        'gemini-pro-vision'
+      ];
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error?.message || `API error ${response.status}`);
+      let data = null;
+      let lastError = null;
+
+      for (const model of models) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: prompt },
+                  { inlineData: { mimeType: mimeType, data: base64 } }
+                ]
+              }],
+              generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 8192
+              }
+            })
+          });
+
+          if (response.ok) {
+            data = await response.json();
+            console.log('Success with model:', model);
+            break;
+          } else {
+            const err = await response.json();
+            lastError = err.error?.message || `HTTP ${response.status}`;
+            console.warn(`Model ${model} failed:`, lastError);
+          }
+        } catch (e) {
+          lastError = e.message;
+          console.warn(`Model ${model} error:`, e);
+        }
       }
 
-      const data = await response.json();
+      if (!data) {
+        throw new Error('All models failed. Last error: ' + lastError);
+      }
+
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
       // Parse JSON from response (handle possible markdown code fences)
