@@ -127,11 +127,32 @@ document.addEventListener('DOMContentLoaded', function() {
         img.onload = function() {
           var canvas = document.createElement('canvas');
           var w = img.width, h = img.height;
+          // Scale up small images for better OCR
+          if (w < 1000) { w = w * 2; h = h * 2; }
           if (w > maxWidth) { h = h * maxWidth / w; w = maxWidth; }
           canvas.width = w;
           canvas.height = h;
-          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+          var ctx = canvas.getContext('2d');
+
+          // Draw image
+          ctx.drawImage(img, 0, 0, w, h);
+
+          // Enhance contrast for better OCR
+          var imageData = ctx.getImageData(0, 0, w, h);
+          var data = imageData.data;
+          for (var i = 0; i < data.length; i += 4) {
+            // Convert to grayscale
+            var gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+            // Increase contrast
+            gray = ((gray / 255 - 0.5) * 1.5 + 0.5) * 255;
+            gray = Math.max(0, Math.min(255, gray));
+            data[i] = gray;
+            data[i + 1] = gray;
+            data[i + 2] = gray;
+          }
+          ctx.putImageData(imageData, 0, 0);
+
+          resolve(canvas.toDataURL('image/jpeg', 0.9).split(',')[1]);
         };
         img.src = e.target.result;
       };
@@ -146,7 +167,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
 
-      // Create a temporary image for Tesseract
       var img = new Image();
       img.onload = function() {
         Tesseract.recognize(img, 'eng', {
@@ -157,8 +177,10 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }).then(function(result) {
           var text = result.data.text.trim();
+          console.log('OCR confidence:', result.data.confidence);
+          console.log('OCR text:', text);
           if (text.length < 5) {
-            reject(new Error('Could not read text. Try a clearer photo.'));
+            reject(new Error('Could not read text. Try a clearer photo with better lighting.'));
           } else {
             resolve(text);
           }
@@ -169,46 +191,80 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // ===== TEXT STRUCTURING =====
+  // ===== TEXT STRUCTURING (Improved) =====
   function structureText(text) {
     var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
     var sections = [];
-    var title = lines.length > 0 ? lines[0].substring(0, 60) : 'My Study Notes';
-    var subtitle = lines.length > 1 ? lines[1].substring(0, 60) : 'OCR Extracted';
+    var title = 'My Study Notes';
+    var subtitle = 'Extracted from handwritten notes';
 
+    // Find title (first substantial line)
+    for (var i = 0; i < Math.min(5, lines.length); i++) {
+      if (lines[i].length > 3 && lines[i].length < 80) {
+        title = lines[i];
+        if (i + 1 < lines.length && lines[i + 1].length < 60) subtitle = lines[i + 1];
+        break;
+      }
+    }
+
+    // Build sections from remaining lines
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i];
       if (line.length < 3) continue;
 
-      // Heading detection
-      if (isHeading(line)) {
-        sections.push({ type: 'heading', content: cleanLine(line) });
+      // Skip first 2 lines if they're title/subtitle
+      if (i < 2 && (line === title || line === subtitle)) continue;
+
+      // 1. HEADING detection (strong signals)
+      if (detectHeading(line)) {
+        sections.push({ type: 'heading', content: cleanHeading(line) });
         continue;
       }
 
-      // Bullet point
-      var bullet = line.match(/^[\-\*•●►▸]\s+(.+)/);
+      // 2. BULLET POINTS
+      var bullet = line.match(/^[\-\*•●►▸➤→]\s+(.+)/);
       if (bullet) {
         addToList(sections, bullet[1], false);
         continue;
       }
 
-      // Numbered list
+      // 3. NUMBERED LIST
       var num = line.match(/^\d+[\.\)]\s+(.+)/);
       if (num) {
         addToList(sections, num[1], true);
         continue;
       }
 
-      // Formula
-      if (/[=+\-×÷∑∫√∞≈≠≤≥αβγδε]/.test(line) && line.length < 80) {
+      // 4. FORMULA / EQUATION detection
+      if (detectFormula(line)) {
         sections.push({ type: 'callout', variant: 'tip', title: 'Formula', content: line });
         continue;
       }
 
-      // Regular text
+      // 5. DEFINITION detection
+      if (detectDefinition(line)) {
+        sections.push({ type: 'callout', variant: 'definition', title: 'Definition', content: line });
+        continue;
+      }
+
+      // 6. KEY CONCEPT / IMPORTANT detection
+      if (detectKeyConcept(line)) {
+        sections.push({ type: 'callout', variant: 'key-concept', title: 'Key Concept', content: line });
+        continue;
+      }
+
+      // 7. EXAMPLE detection
+      if (detectExample(line)) {
+        sections.push({ type: 'callout', variant: 'example', title: 'Example', content: line });
+        continue;
+      }
+
+      // 8. REGULAR TEXT
       sections.push({ type: 'text', content: line });
     }
+
+    // Merge consecutive text into paragraphs
+    sections = mergeTextParagraphs(sections);
 
     if (sections.length === 0) {
       sections.push({ type: 'text', content: text });
@@ -217,16 +273,55 @@ document.addEventListener('DOMContentLoaded', function() {
     return { title: title, subtitle: subtitle, sections: sections };
   }
 
-  function isHeading(line) {
-    if (line === line.toUpperCase() && line.length > 3 && line.length < 60) return true;
-    if (line.endsWith(':') && line.length < 60) return true;
-    if (/^\d+\.\s+[A-Z]/.test(line) && line.length < 60) return true;
-    if (/^(chapter|section|part|topic|introduction|conclusion|summary|definition|example|note|important)/i.test(line)) return true;
+  function detectHeading(line) {
+    // ALL CAPS (but not too long)
+    if (line === line.toUpperCase() && line.length > 2 && line.length < 50) return true;
+    // Ends with colon and is short
+    if (line.endsWith(':') && line.length < 50) return true;
+    // Numbered heading like "1. Introduction"
+    if (/^\d+[\.\)]\s+[A-Z]/.test(line) && line.length < 50) return true;
+    // Starts with common heading words
+    if (/^(chapter|section|part|topic|introduction|conclusion|summary|definition|example|note|important|key|formula|equation|theorem|proof|problem|solution|result|answer)/i.test(line)) return true;
+    // Short line with first letter capitalized and no period at end
+    if (line.length < 30 && /^[A-Z]/.test(line) && !line.endsWith('.') && !line.endsWith(',')) return true;
     return false;
   }
 
-  function cleanLine(line) {
-    return line.replace(/:$/, '').replace(/^[\d]+\.\s*/, '').trim();
+  function cleanHeading(line) {
+    return line.replace(/:$/, '').replace(/^\d+[\.\)]\s*/, '').trim();
+  }
+
+  function detectFormula(line) {
+    // Contains math symbols
+    if (/[=+\-×÷∑∫√∞≈≠≤≥≥→←↔±×÷%‰]/.test(line) && line.length < 100) return true;
+    // Contains subscripts/superscripts patterns like H2O, CO2
+    if (/[A-Z][a-z]?\d/.test(line) && line.length < 60) return true;
+    // Contains common formula patterns
+    if (/\d+\s*[+\-×÷=]\s*\d+/.test(line)) return true;
+    return false;
+  }
+
+  function detectDefinition(line) {
+    var patterns = [
+      /\b(is defined as|is the process|is the|means|refers to|can be defined|is a|is an|is when|is where|describes|involves)\b/i,
+      /^.{20,80}\.$/  // Long sentence ending with period
+    ];
+    // Must be a substantial sentence
+    if (line.length > 30 && line.length < 200) {
+      for (var i = 0; i < patterns.length; i++) {
+        if (patterns[i].test(line)) return true;
+      }
+    }
+    return false;
+  }
+
+  function detectKeyConcept(line) {
+    var keywords = /\b(important|key|note that|remember|essential|crucial|fundamental|main idea|principle|concept)\b/i;
+    return keywords.test(line) && line.length > 20;
+  }
+
+  function detectExample(line) {
+    return /^(for example|e\.g\.|such as|instance|e\.g|example:|eg:)/i.test(line);
   }
 
   function addToList(sections, item, ordered) {
@@ -236,6 +331,26 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       sections.push({ type: 'list', ordered: ordered, items: [item] });
     }
+  }
+
+  function mergeTextParagraphs(sections) {
+    var result = [];
+    var textBuf = '';
+    for (var i = 0; i < sections.length; i++) {
+      var s = sections[i];
+      if (s.type === 'text') {
+        if (textBuf) textBuf += ' ';
+        textBuf += s.content;
+      } else {
+        if (textBuf) {
+          result.push({ type: 'text', content: textBuf });
+          textBuf = '';
+        }
+        result.push(s);
+      }
+    }
+    if (textBuf) result.push({ type: 'text', content: textBuf });
+    return result;
   }
 
   // ===== RENDERING =====
