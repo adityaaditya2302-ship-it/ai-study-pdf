@@ -407,9 +407,7 @@ Rules:
       // Try multiple model endpoints
       const models = [
         'gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'gemini-1.5-pro',
-        'gemini-pro-vision'
+        'gemini-1.5-flash'
       ];
 
       let data = null;
@@ -417,12 +415,11 @@ Rules:
 
       for (const model of models) {
         try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
           const response = await fetch(url, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': apiKey
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({
               contents: [{
