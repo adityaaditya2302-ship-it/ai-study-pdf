@@ -117,8 +117,30 @@ document.addEventListener('DOMContentLoaded', function() {
         renderNotes(lastData, currentTheme);
         showState('result');
       });
+    } else if (mode === 'openrouter') {
+      // OpenRouter AI Vision
+      var apiKey = document.getElementById('apiKeyInput').value.trim();
+      if (!apiKey) {
+        alert('Please enter your OpenRouter API key.\n\nGet free $5 credits at:\nhttps://openrouter.ai/keys');
+        showState('upload');
+        return;
+      }
+      compressImage(file, 1024).then(function(base64) {
+        updateStatus('Sending to AI Vision...');
+        return processWithOpenRouter(base64, file.type || 'image/jpeg', apiKey);
+      }).then(function(data) {
+        lastData = data;
+        renderNotes(data, currentTheme);
+        showState('result');
+      }).catch(function(err) {
+        console.error('OpenRouter error:', err);
+        alert('AI Error: ' + err.message);
+        lastData = getDemoData();
+        renderNotes(lastData, currentTheme);
+        showState('result');
+      });
     } else {
-      // AI Vision mode (Hugging Face)
+      // HF AI Vision mode
       compressImage(file, 1024).then(function(base64) {
         updateStatus('Sending to AI Vision...');
         return processWithHF(base64, file.type || 'image/jpeg');
@@ -363,6 +385,77 @@ Extract everything accurately. Return ONLY JSON.`;
       throw new Error('Invalid response structure');
     }
     return data;
+  }
+
+  // ===== OPENROUTER AI VISION (GPT-4o, Claude, Gemini) =====
+  function processWithOpenRouter(base64, mimeType, apiKey) {
+    var prompt = `You are the world's best study notes organizer. Analyze this handwritten notebook page with 100% accuracy. Extract EVERY word, equation, diagram label, and detail.
+
+Return ONLY valid JSON (no markdown, no code fences):
+{
+  "title": "Main topic from the notes",
+  "subtitle": "Subject or chapter name",
+  "sections": [
+    { "type": "heading", "content": "Section title" },
+    { "type": "text", "content": "Full paragraph explanation" },
+    { "type": "callout", "variant": "definition", "title": "Definition", "content": "Exact definition from notes" },
+    { "type": "callout", "variant": "key-concept", "title": "Key Concept", "content": "Important concept" },
+    { "type": "callout", "variant": "tip", "title": "Remember", "content": "Memory aid or tip" },
+    { "type": "table", "headers": ["Column1", "Column2"], "rows": [["data1", "data2"]] },
+    { "type": "formula", "latex": "LaTeX equation", "label": "What this formula means" },
+    { "type": "list", "ordered": false, "items": ["Point 1", "Point 2"] },
+    { "type": "highlight", "content": "Critical information", "color": "yellow" }
+  ]
+}
+
+CRITICAL RULES:
+- Extract EVERY word from the handwriting - do not skip anything
+- Preserve exact wording and terminology
+- Convert ALL mathematical formulas to proper LaTeX
+- Identify definitions, key concepts, and examples accurately
+- Structure content hierarchically with proper headings
+- Include ALL tables, lists, and data exactly as written
+- For formulas, use LaTeX syntax: H_2O, CO_2, E=mc^2, etc.`;
+
+    return new Promise(function(resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', 'https://openrouter.ai/api/v1/chat/completions', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Authorization', 'Bearer ' + apiKey);
+      xhr.setRequestHeader('HTTP-Referer', window.location.href);
+      xhr.setRequestHeader('X-Title', 'AI Study PDF');
+
+      xhr.onload = function() {
+        try {
+          var data = JSON.parse(xhr.responseText);
+          if (xhr.status !== 200) {
+            throw new Error(data.error?.message || 'API error ' + xhr.status);
+          }
+          var text = data.choices?.[0]?.message?.content || '';
+          var parsed = parseAIResponse(text);
+          resolve(parsed);
+        } catch (e) {
+          reject(e);
+        }
+      };
+
+      xhr.onerror = function() {
+        reject(new Error('Network error - check your connection'));
+      };
+
+      xhr.send(JSON.stringify({
+        model: 'google/gemini-2.0-flash-001',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: 'data:' + mimeType + ';base64,' + base64 } }
+          ]
+        }],
+        max_tokens: 4096,
+        temperature: 0.1
+      }));
+    });
   }
 
   // ===== TEXT STRUCTURING (Improved) =====
