@@ -55,12 +55,20 @@ document.addEventListener('DOMContentLoaded', function() {
     updateStatus('Preparing image...');
     compressImage(file, 1024).then(function(base64) {
       var mode = aiProvider ? aiProvider.value : 'ai';
+      var apiKey = document.getElementById('apiKeyInput') ? document.getElementById('apiKeyInput').value.trim() : '';
+
       if (mode === 'local') {
         updateStatus('Reading handwriting...');
         return runOCR(base64).then(function(text) {
           updateStatus('Creating notes...');
           return structureText(text);
         });
+      } else if (mode === 'gemini' && apiKey) {
+        updateStatus('Sending to Gemini AI...');
+        return callGemini(base64, file.type || 'image/jpeg', apiKey);
+      } else if (mode === 'openrouter' && apiKey) {
+        updateStatus('Sending to AI Vision...');
+        return callOpenRouter(base64, file.type || 'image/jpeg', apiKey);
       } else {
         updateStatus('AI is reading your notes...');
         return callFreeAI(base64, file.type || 'image/jpeg');
@@ -158,6 +166,76 @@ document.addEventListener('DOMContentLoaded', function() {
     var d = JSON.parse(s);
     if (!d.title || !d.sections) throw new Error('Bad structure');
     return d;
+  }
+
+  // ===== GEMINI API =====
+  function callGemini(base64, mimeType, apiKey) {
+    var prompt = 'Read this handwritten notebook page. Extract ALL text accurately. Return ONLY valid JSON: {"title":"Topic","subtitle":"Subject","sections":[{"type":"heading","content":"Title"},{"type":"text","content":"Explanation"},{"type":"callout","variant":"definition","title":"Definition","content":"Def"},{"type":"callout","variant":"key-concept","title":"Key Concept","content":"Concept"},{"type":"table","headers":["C1","C2"],"rows":[["v1","v2"]]},{"type":"formula","latex":"LaTeX","label":"Desc"},{"type":"list","ordered":false,"items":["Item"]},{"type":"highlight","content":"Important","color":"yellow"}]}';
+    var endpoints = [
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent'
+    ];
+
+    return new Promise(function(resolve) {
+      tryNext(0);
+      function tryNext(i) {
+        if (i >= endpoints.length) {
+          callFreeAI(base64, mimeType).then(resolve).catch(function() {
+            runOCR(base64).then(function(t) { resolve(structureText(t)); }).catch(function() { resolve(getDemoData()); });
+          });
+          return;
+        }
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', endpoints[i] + '?key=' + encodeURIComponent(apiKey), true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.timeout = 30000;
+        xhr.onload = function() {
+          try {
+            var d = JSON.parse(xhr.responseText);
+            if (d.candidates && d.candidates[0]) {
+              var text = d.candidates[0].content.parts[0].text || '';
+              resolve(parseJSON(text));
+            } else { tryNext(i+1); }
+          } catch(e) { tryNext(i+1); }
+        };
+        xhr.onerror = xhr.ontimeout = function() { tryNext(i+1); };
+        xhr.send(JSON.stringify({
+          contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: mimeType, data: base64 } }] }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 4096 }
+        }));
+      }
+    });
+  }
+
+  // ===== OPENROUTER =====
+  function callOpenRouter(base64, mimeType, apiKey) {
+    return new Promise(function(resolve) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', 'https://openrouter.ai/api/v1/chat/completions', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Authorization', 'Bearer ' + apiKey);
+      xhr.timeout = 30000;
+      xhr.onload = function() {
+        try {
+          var d = JSON.parse(xhr.responseText);
+          resolve(parseJSON(d.choices[0].message.content));
+        } catch(e) {
+          callFreeAI(base64, mimeType).then(resolve).catch(function() { resolve(getDemoData()); });
+        }
+      };
+      xhr.onerror = xhr.ontimeout = function() {
+        callFreeAI(base64, mimeType).then(resolve).catch(function() { resolve(getDemoData()); });
+      };
+      xhr.send(JSON.stringify({
+        model: 'google/gemini-2.0-flash-001',
+        messages: [{ role: 'user', content: [
+          { type: 'text', text: 'Read this handwritten page. Return ONLY JSON: {"title":"Topic","sections":[{"type":"heading","content":"H"},{"type":"text","content":"T"}]}' },
+          { type: 'image_url', image_url: { url: 'data:' + mimeType + ';base64,' + base64 } }
+        ]}],
+        max_tokens: 4096
+      }));
+    });
   }
 
   // ===== OCR =====
