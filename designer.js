@@ -147,7 +147,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // -- File input change (use event delegation on document) --
+  // -- Provider hint update --
+  const aiProvider = document.getElementById('aiProvider');
+  const apiHint = document.getElementById('apiHint');
+  if (aiProvider && apiHint) {
+    aiProvider.addEventListener('change', () => {
+      if (aiProvider.value === 'gemini') {
+        apiHint.innerHTML = 'Get free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a>';
+      } else {
+        apiHint.innerHTML = 'Get key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>';
+      }
+    });
+  }
   document.addEventListener('change', (e) => {
     if (e.target.id === 'fileInput' && e.target.files && e.target.files.length > 0) {
       handleFileSelect(e);
@@ -301,17 +312,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const totalDuration = animatePipeline();
     const apiKey = document.getElementById('apiKeyInput')?.value?.trim();
+    const provider = document.getElementById('aiProvider')?.value || 'gemini';
 
     setTimeout(() => {
       if (apiKey) {
-        if (!apiKey.startsWith('AIza')) {
-          alert('Invalid API key format. Gemini API keys start with "AIza..."\n\nPlease get a valid key from:\nhttps://aistudio.google.com/apikey');
-          const mockData = generateMockNotes();
-          lastStructuredData = mockData;
-          renderAndShow(mockData);
-          return;
+        if (provider === 'openai') {
+          processWithOpenAI(apiKey);
+        } else {
+          processWithGemini(apiKey);
         }
-        processWithGemini(apiKey);
       } else {
         // Fallback to mock data if no API key
         const mockData = generateMockNotes();
@@ -480,6 +489,84 @@ Rules:
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+  }
+
+  /** Process image with OpenAI GPT-4o API */
+  async function processWithOpenAI(apiKey) {
+    try {
+      if (processingStatus) processingStatus.textContent = 'Sending to GPT-4o...';
+
+      const base64 = await fileToBase64(uploadedFile);
+      const mimeType = uploadedFile.type || 'image/jpeg';
+
+      const prompt = `You are an expert study notes organizer. Analyze this handwritten notebook page image and extract ALL the content.
+
+Return ONLY a valid JSON object (no markdown, no code fences) with this exact structure:
+{
+  "title": "Main topic title from the notes",
+  "subtitle": "Brief subtitle or subject area",
+  "sections": [
+    { "type": "heading", "content": "Section heading text" },
+    { "type": "text", "content": "Paragraph text explaining the concept" },
+    { "type": "callout", "variant": "definition", "title": "Definition", "content": "Important definition" },
+    { "type": "callout", "variant": "key-concept", "title": "Key Concept", "content": "Key concept" },
+    { "type": "table", "headers": ["Col1", "Col2"], "rows": [["val1", "val2"]] },
+    { "type": "formula", "latex": "LaTeX formula", "label": "Description" },
+    { "type": "list", "ordered": false, "items": ["Item 1", "Item 2"] },
+    { "type": "highlight", "content": "Important text", "color": "yellow" }
+  ]
+}
+
+Rules: Extract ALL text accurately. Use heading for titles, text for explanations, callout for definitions/key concepts, table for comparisons, formula for math, list for bullet points. Return ONLY the JSON.`;
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } }
+            ]
+          }],
+          max_tokens: 4096,
+          temperature: 0.3
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || `API error ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.choices?.[0]?.message?.content || '';
+
+      let jsonStr = text.trim();
+      if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+      }
+
+      const structuredData = JSON.parse(jsonStr);
+      if (!structuredData.title || !structuredData.sections) {
+        throw new Error('Invalid response structure from AI');
+      }
+
+      lastStructuredData = structuredData;
+      renderAndShow(structuredData);
+
+    } catch (error) {
+      console.error('OpenAI API error:', error);
+      alert('AI processing failed: ' + error.message + '\n\nFalling back to demo notes.');
+      const mockData = generateMockNotes();
+      lastStructuredData = mockData;
+      renderAndShow(mockData);
+    }
   }
 
   /** Render notes and switch to result view */

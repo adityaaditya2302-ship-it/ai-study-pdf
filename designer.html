@@ -33,9 +33,16 @@
       <section class="sidebar-section">
         <h3 class="sidebar-heading">AI Provider</h3>
         <div class="api-key-group">
-          <label class="api-label">Gemini API Key</label>
+          <label class="api-label">Choose Provider</label>
+          <select id="aiProvider" class="api-input">
+            <option value="gemini">Google Gemini (Free)</option>
+            <option value="openai">OpenAI GPT-4o</option>
+          </select>
+        </div>
+        <div class="api-key-group">
+          <label class="api-label">API Key</label>
           <input type="password" id="apiKeyInput" class="api-input" placeholder="Paste your API key here">
-          <p class="api-hint">Get free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a></p>
+          <p class="api-hint" id="apiHint">Get free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a></p>
         </div>
       </section>
 
