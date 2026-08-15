@@ -96,21 +96,38 @@ document.addEventListener('DOMContentLoaded', function() {
         img.onload = function() {
           var c = document.createElement('canvas');
           var w = img.width, h = img.height;
-          if (w < 800) { w *= 2; h *= 2; }
+          // Scale up for better OCR
+          if (w < 1200) { w *= 2; h *= 2; }
           if (w > maxW) { h = h * maxW / w; w = maxW; }
           c.width = w; c.height = h;
           var ctx = c.getContext('2d');
+          // Draw white background first
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, w, h);
           ctx.drawImage(img, 0, 0, w, h);
-          // Enhance contrast
+          // Advanced contrast enhancement
           var id = ctx.getImageData(0, 0, w, h), d = id.data;
+          // Find min/max for auto contrast
+          var min = 255, max = 0;
           for (var i = 0; i < d.length; i += 4) {
-            var g = d[i] * 0.3 + d[i+1] * 0.59 + d[i+2] * 0.11;
-            g = ((g / 255 - 0.5) * 1.6 + 0.5) * 255;
-            g = Math.max(0, Math.min(255, g));
+            var g = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+            if (g < min) min = g;
+            if (g > max) max = g;
+          }
+          // Apply auto contrast + sharpening
+          var range = max - min || 1;
+          for (var i = 0; i < d.length; i += 4) {
+            var g = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+            // Auto contrast
+            g = ((g - min) / range) * 255;
+            // Increase contrast more
+            g = ((g / 255 - 0.5) * 1.8 + 0.5) * 255;
+            // Threshold for cleaner text
+            g = g > 140 ? 255 : 0;
             d[i] = d[i+1] = d[i+2] = g;
           }
           ctx.putImageData(id, 0, 0);
-          ok(c.toDataURL('image/jpeg', 0.9).split(',')[1]);
+          ok(c.toDataURL('image/jpeg', 0.95).split(',')[1]);
         };
         img.src = e.target.result;
       };
@@ -244,11 +261,19 @@ document.addEventListener('DOMContentLoaded', function() {
       if (typeof Tesseract === 'undefined') { fail('No OCR engine'); return; }
       var img = new Image();
       img.onload = function() {
-        Tesseract.recognize(img, 'eng', { logger: function(m) {
-          if (m.status === 'recognizing text' && processingStatus) processingStatus.textContent = 'Reading... ' + Math.round(m.progress * 100) + '%';
-        }}).then(function(r) {
+        Tesseract.recognize(img, 'eng', {
+          logger: function(m) {
+            if (m.status === 'recognizing text' && processingStatus) {
+              var pct = Math.round(m.progress * 100);
+              processingStatus.textContent = 'Reading handwriting... ' + pct + '%';
+            }
+          }
+        }).then(function(r) {
           var t = r.data.text.trim();
-          if (t.length < 5) fail('No text found'); else ok(t);
+          var conf = r.data.confidence;
+          console.log('OCR confidence:', conf, 'Text length:', t.length);
+          if (t.length < 5) fail('No text found. Try a clearer photo.');
+          else ok(t);
         }).catch(fail);
       };
       img.onerror = function() { fail('Image error'); };
@@ -258,35 +283,135 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // ===== STRUCTURE TEXT =====
   function structureText(text) {
+    // Clean up OCR artifacts
+    text = text.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n');
     var lines = text.split('\n').map(function(l){return l.trim()}).filter(function(l){return l.length>0});
-    var sections = [], title = lines[0] || 'My Notes', subtitle = lines[1] || '';
-    for (var i = 0; i < lines.length; i++) {
-      var l = lines[i]; if (l.length < 3) continue;
-      if (isHead(l)) { sections.push({type:'heading',content:cleanH(l)}); }
-      else if (/^[\-\*•●]/.test(l)) { addList(sections, l.replace(/^[\-\*•●]\s+/,''), false); }
-      else if (/^\d+[\.\)]/.test(l)) { addList(sections, l.replace(/^\d+[\.\)]\s+/,''), true); }
-      else if (/[=+×÷∑∫√∞≈≠→←]/.test(l) && l.length < 80) { sections.push({type:'callout',variant:'tip',title:'Formula',content:l}); }
-      else if (/\b(is defined as|is the|means|refers to)\b/i.test(l) && l.length > 20) { sections.push({type:'callout',variant:'definition',title:'Definition',content:l}); }
-      else if (/\b(important|key|note|remember)\b/i.test(l) && l.length > 15) { sections.push({type:'callout',variant:'key-concept',title:'Key Concept',content:l}); }
-      else { sections.push({type:'text',content:l}); }
+    var sections = [], title = 'My Study Notes', subtitle = '';
+
+    // Find title (first meaningful line)
+    for (var i = 0; i < Math.min(5, lines.length); i++) {
+      if (lines[i].length > 3 && lines[i].length < 80 && !/^[\d\s]+$/.test(lines[i])) {
+        title = lines[i];
+        if (i + 1 < lines.length && lines[i+1].length < 60) subtitle = lines[i+1];
+        break;
+      }
     }
+
+    // Process each line
+    var listType = null;
+    var listItems = [];
+    for (var i = 0; i < lines.length; i++) {
+      var l = lines[i];
+      if (l.length < 3) continue;
+      if (l === title || l === subtitle) continue;
+
+      // Heading detection
+      if (isHead(l)) {
+        flushList();
+        sections.push({type:'heading', content:cleanH(l)});
+        listType = null;
+        continue;
+      }
+
+      // Bullet point
+      var bullet = l.match(/^[\-\*•●►▸➤→]\s+(.+)/);
+      if (bullet) {
+        if (listType !== false) { flushList(); listType = false; }
+        listItems.push(bullet[1]);
+        continue;
+      }
+
+      // Numbered list
+      var num = l.match(/^\d+[\.\)]\s+(.+)/);
+      if (num) {
+        if (listType !== true) { flushList(); listType = true; }
+        listItems.push(num[1]);
+        continue;
+      }
+
+      // Formula/Equation
+      if (isFormula(l)) {
+        flushList();
+        sections.push({type:'callout', variant:'tip', title:'Formula', content:l});
+        listType = null;
+        continue;
+      }
+
+      // Definition
+      if (isDef(l)) {
+        flushList();
+        sections.push({type:'callout', variant:'definition', title:'Definition', content:l});
+        listType = null;
+        continue;
+      }
+
+      // Key concept
+      if (isKey(l)) {
+        flushList();
+        sections.push({type:'callout', variant:'key-concept', title:'Key Concept', content:l});
+        listType = null;
+        continue;
+      }
+
+      // Example
+      if (isExample(l)) {
+        flushList();
+        sections.push({type:'callout', variant:'example', title:'Example', content:l});
+        listType = null;
+        continue;
+      }
+
+      // Regular text
+      flushList();
+      sections.push({type:'text', content:l});
+      listType = null;
+    }
+    flushList();
+
+    // Merge consecutive text into paragraphs
     sections = mergeText(sections);
-    if (!sections.length) sections.push({type:'text',content:text});
+
+    if (!sections.length) sections.push({type:'text', content:text});
     return {title:title, subtitle:subtitle, sections:sections};
+
+    function flushList() {
+      if (listItems.length > 0) {
+        sections.push({type:'list', ordered:listType===true, items:listItems.slice()});
+        listItems = [];
+      }
+    }
   }
 
   function isHead(l) {
-    if (l === l.toUpperCase() && l.length > 2 && l.length < 50) return true;
-    if (l.endsWith(':') && l.length < 50) return true;
-    if (/^(chapter|section|topic|definition|example|note|important|summary)/i.test(l)) return true;
+    if (l === l.toUpperCase() && l.length > 2 && l.length < 50 && !/[a-z]/.test(l)) return true;
+    if (l.endsWith(':') && l.length < 50 && /^[A-Z]/.test(l)) return true;
+    if (/^(chapter|section|part|topic|introduction|conclusion|summary|definition|example|note|important|key concept|formula|equation|theorem|proof|problem|solution|result|answer|types|classification|properties|uses|applications|advantages|disadvantages)/i.test(l)) return true;
+    if (/^\d+[\.\)]\s+[A-Z]/.test(l) && l.length < 50) return true;
     return false;
   }
   function cleanH(l) { return l.replace(/:$/,'').replace(/^\d+[\.\)]\s*/,'').trim(); }
-  function addList(s, item, ord) {
-    var last = s[s.length-1];
-    if (last && last.type==='list' && last.ordered===ord) last.items.push(item);
-    else s.push({type:'list',ordered:ord,items:[item]});
+
+  function isFormula(l) {
+    if (/[=+\-×÷∑∫√∞≈≠≤≥≥→←↔±]/.test(l) && l.length < 100) return true;
+    if (/[A-Z][a-z]?\d/.test(l) && /[=+\-]/.test(l) && l.length < 80) return true;
+    if (/^\d+\s*[+\-×÷=]\s*\d+/.test(l)) return true;
+    return false;
   }
+
+  function isDef(l) {
+    if (l.length < 30 || l.length > 250) return false;
+    return /\b(is defined as|is the process of|is the|means|refers to|can be defined as|is a type of|is when|is where|describes|involves|is caused by|is known as)\b/i.test(l);
+  }
+
+  function isKey(l) {
+    if (l.length < 15) return false;
+    return /\b(important|key point|note that|remember|essential|crucial|fundamental|main idea|principle|always|never|must|should)\b/i.test(l);
+  }
+
+  function isExample(l) {
+    return /^(for example|e\.g\.|such as|instance|example:|eg:|for instance)/i.test(l);
+  }
+
   function mergeText(s) {
     var r=[], buf='';
     for (var i=0;i<s.length;i++) {
