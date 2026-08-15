@@ -404,18 +404,21 @@ Rules:
 - Preserve the logical structure and hierarchy
 - Return ONLY the JSON object, nothing else`;
 
-      // Try multiple model endpoints
-      const models = [
-        'gemini-2.0-flash',
-        'gemini-1.5-flash'
+      // Try multiple API versions and models
+      const endpoints = [
+        { base: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.0-flash' },
+        { base: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-1.5-flash' },
+        { base: 'https://generativelanguage.googleapis.com/v1', model: 'gemini-2.0-flash' },
+        { base: 'https://generativelanguage.googleapis.com/v1', model: 'gemini-1.5-flash' }
       ];
 
       let data = null;
       let lastError = null;
 
-      for (const model of models) {
+      for (const ep of endpoints) {
         try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          const url = `${ep.base}/models/${ep.model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          console.log('Trying:', ep.base, ep.model);
           const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -437,16 +440,16 @@ Rules:
 
           if (response.ok) {
             data = await response.json();
-            console.log('Success with model:', model);
+            console.log('Success with:', ep.base, ep.model);
             break;
           } else {
             const err = await response.json();
             lastError = err.error?.message || `HTTP ${response.status}`;
-            console.warn(`Model ${model} failed:`, lastError);
+            console.warn(`Failed ${ep.model}:`, lastError);
           }
         } catch (e) {
           lastError = e.message;
-          console.warn(`Model ${model} error:`, e);
+          console.warn(`Error ${ep.model}:`, e);
         }
       }
 
