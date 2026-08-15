@@ -406,10 +406,9 @@ Rules:
 
       // Try multiple API versions and models
       const endpoints = [
-        { base: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.0-flash' },
-        { base: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-1.5-flash' },
-        { base: 'https://generativelanguage.googleapis.com/v1', model: 'gemini-2.0-flash' },
-        { base: 'https://generativelanguage.googleapis.com/v1', model: 'gemini-1.5-flash' }
+        { base: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.5-flash' },
+        { base: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.5-pro' },
+        { base: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.0-flash-lite' }
       ];
 
       let data = null;
