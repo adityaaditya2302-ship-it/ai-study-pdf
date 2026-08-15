@@ -152,8 +152,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const apiHint = document.getElementById('apiHint');
   if (aiProvider && apiHint) {
     aiProvider.addEventListener('change', () => {
-      if (aiProvider.value === 'gemini') {
-        apiHint.innerHTML = 'Get free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a>';
+      if (aiProvider.value === 'local') {
+        apiHint.innerHTML = 'No API key needed — runs entirely in your browser';
+      } else if (aiProvider.value === 'gemini') {
+        apiHint.innerHTML = 'Get key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a>';
       } else if (aiProvider.value === 'groq') {
         apiHint.innerHTML = 'Get free key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>';
       } else {
@@ -317,15 +319,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const provider = document.getElementById('aiProvider')?.value || 'gemini';
 
     setTimeout(() => {
-      if (apiKey) {
-        if (provider === 'openai') {
-          processWithOpenAI(apiKey);
-        } else if (provider === 'groq') {
-          processWithGroq(apiKey);
-        } else {
-          processWithGemini(apiKey);
-        }
+      if (provider === 'local' || !apiKey) {
+        processLocally();
+      } else if (provider === 'openai') {
+        processWithOpenAI(apiKey);
+      } else if (provider === 'groq') {
+        processWithGroq(apiKey);
       } else {
+        processWithGemini(apiKey);
+      }
         // Fallback to mock data if no API key
         const mockData = generateMockNotes();
         lastStructuredData = mockData;
@@ -679,6 +681,178 @@ Extract everything accurately. Return ONLY JSON.`;
       lastStructuredData = mockData;
       renderAndShow(mockData);
     }
+  }
+
+  /** Process image locally using Tesseract.js OCR (no API needed) */
+  async function processLocally() {
+    try {
+      if (processingStatus) processingStatus.textContent = 'Loading OCR engine...';
+
+      // Check if Tesseract is loaded
+      if (typeof Tesseract === 'undefined') {
+        throw new Error('OCR engine not loaded. Please check your internet connection and refresh.');
+      }
+
+      // Run OCR on the uploaded image
+      if (processingStatus) processingStatus.textContent = 'Reading handwriting... (this may take a moment)';
+
+      const result = await Tesseract.recognize(uploadedFile, 'eng', {
+        logger: (m) => {
+          if (m.status === 'recognizing text' && processingStatus) {
+            const pct = Math.round(m.progress * 100);
+            processingStatus.textContent = `Reading handwriting... ${pct}%`;
+          }
+        }
+      });
+
+      const extractedText = result.data.text.trim();
+      console.log('OCR extracted:', extractedText);
+
+      if (!extractedText || extractedText.length < 10) {
+        throw new Error('Could not read enough text from the image. Try a clearer photo.');
+      }
+
+      // Structure the extracted text into notes format
+      const structuredData = structureOCRText(extractedText);
+      lastStructuredData = structuredData;
+      renderAndShow(structuredData);
+
+    } catch (error) {
+      console.error('Local OCR error:', error);
+      alert('OCR failed: ' + error.message + '\n\nFalling back to demo notes.');
+      const mockData = generateMockNotes();
+      lastStructuredData = mockData;
+      renderAndShow(mockData);
+    }
+  }
+
+  /** Convert raw OCR text into structured note format */
+  function structureOCRText(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const sections = [];
+    let title = 'My Study Notes';
+    let subtitle = 'Extracted from handwritten notes';
+
+    // Try to detect title (first non-empty line that's short)
+    if (lines.length > 0) {
+      title = lines[0].substring(0, 80);
+      if (lines.length > 1 && lines[1].length < 60) {
+        subtitle = lines[1];
+      }
+    }
+
+    // Detect headings (lines that are ALL CAPS, or end with ':', or are very short bold text)
+    // Detect bullet points (lines starting with -, *, •, or numbers)
+    // Everything else becomes text paragraphs
+    let currentSection = null;
+    let paragraphBuffer = [];
+
+    function flushParagraph() {
+      if (paragraphBuffer.length > 0) {
+        const content = paragraphBuffer.join(' ');
+        if (content.length > 20) {
+          // Check if it looks like a definition (contains "is", "means", "defined as")
+          if (/\b(is defined as|means|is the|is a|refers to)\b/i.test(content)) {
+            sections.push({
+              type: 'callout',
+              variant: 'definition',
+              title: 'Definition',
+              content: content
+            });
+          } else {
+            sections.push({ type: 'text', content: content });
+          }
+        }
+        paragraphBuffer = [];
+      }
+    }
+
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Skip very short noise lines
+      if (line.length < 2) continue;
+
+      // Detect heading: ALL CAPS, or ends with ':', or numbered like "1.", "2."
+      const isHeading = (
+        (line === line.toUpperCase() && line.length > 3 && line.length < 60) ||
+        (line.endsWith(':') && line.length < 80) ||
+        (/^\d+\.\s+[A-Z]/.test(line) && line.length < 80) ||
+        (/^(Chapter|Section|Part|Topic|Introduction|Conclusion|Summary|Definition|Example|Note)\b/i.test(line) && line.length < 80)
+      );
+
+      if (isHeading) {
+        flushParagraph();
+        sections.push({
+          type: 'heading',
+          content: line.replace(/:$/, '').trim()
+        });
+        continue;
+      }
+
+      // Detect bullet point
+      const bulletMatch = line.match(/^[\-\*•●►▸]\s+(.+)/);
+      if (bulletMatch) {
+        flushParagraph();
+        if (!currentSection || currentSection.type !== 'list') {
+          currentSection = { type: 'list', ordered: false, items: [] };
+          sections.push(currentSection);
+        }
+        currentSection.items.push(bulletMatch[1]);
+        continue;
+      }
+
+      // Detect numbered list
+      const numMatch = line.match(/^\d+[\.\)]\s+(.+)/);
+      if (numMatch) {
+        flushParagraph();
+        if (!currentSection || currentSection.type !== 'list') {
+          currentSection = { type: 'list', ordered: true, items: [] };
+          sections.push(currentSection);
+        }
+        currentSection.items.push(numMatch[1]);
+        continue;
+      }
+
+      // Detect formula (contains math symbols)
+      if (/[=+\-×÷∑∫√∞≈≠≤≥αβγδεθλμπσφω]/.test(line) && line.length < 100) {
+        flushParagraph();
+        sections.push({
+          type: 'callout',
+          variant: 'tip',
+          title: 'Formula',
+          content: line
+        });
+        continue;
+      }
+
+      // Regular text - add to paragraph buffer
+      currentSection = null;
+      paragraphBuffer.push(line);
+    }
+
+    flushParagraph();
+
+    // If we got very few sections, just make text paragraphs
+    if (sections.length < 3) {
+      sections.length = 0;
+      for (let i = 2; i < lines.length; i++) {
+        if (lines[i].length > 5) {
+          sections.push({ type: 'text', content: lines[i] });
+        }
+      }
+    }
+
+    // Ensure at least something
+    if (sections.length === 0) {
+      sections.push({ type: 'text', content: text });
+    }
+
+    return {
+      title: title,
+      subtitle: subtitle + ' (OCR extracted)',
+      sections: sections
+    };
   }
 
   /** Render notes and switch to result view */
