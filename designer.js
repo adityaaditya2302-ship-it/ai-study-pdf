@@ -227,8 +227,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Save preference
     localStorage.setItem('notesTheme', theme);
     // Re-render notes with new theme if content exists
-    if (currentNotesHTML && typeof renderNotes === 'function') {
-      renderNotes(lastStructuredData, theme);
+    if (lastStructuredData && typeof renderNotes === 'function') {
+      const renderedHTML = renderNotes(lastStructuredData, theme);
+      if (notesContainer) {
+        notesContainer.innerHTML = renderedHTML;
+      }
+      currentNotesHTML = notesContainer ? notesContainer.innerHTML : '';
     }
   }
 
@@ -309,12 +313,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const mockData = generateMockNotes();
       lastStructuredData = mockData;
 
-      // Call the renderer (from renderer.js)
+      // Call the renderer (from renderer.js) and write to DOM
       if (typeof renderNotes === 'function') {
-        renderNotes(mockData, currentTheme);
+        const renderedHTML = renderNotes(mockData, currentTheme);
+        if (notesContainer) {
+          notesContainer.innerHTML = renderedHTML;
+        }
+        // Also show in result canvas
+        const notesPreview = document.getElementById('notesPreview');
+        if (notesPreview) {
+          notesPreview.innerHTML = renderedHTML;
+        }
+        // Re-init Mermaid diagrams if available
+        if (typeof mermaid !== 'undefined' && mermaid.init) {
+          try { mermaid.init(undefined, '.mermaid'); } catch(e) {}
+        }
       } else {
         // Fallback: render basic HTML if renderer.js not loaded
-        notesContainer.innerHTML = fallbackRender(mockData);
+        const html = fallbackRender(mockData);
+        if (notesContainer) notesContainer.innerHTML = html;
+        const notesPreview = document.getElementById('notesPreview');
+        if (notesPreview) notesPreview.innerHTML = html;
       }
 
       currentNotesHTML = notesContainer ? notesContainer.innerHTML : '';
@@ -378,42 +397,69 @@ document.addEventListener('DOMContentLoaded', () => {
       subtitle: "A Complete Guide to How Plants Make Food",
       sections: [
         {
-          heading: "What is Photosynthesis?",
-          content: "Photosynthesis is the biological process by which green plants, algae, and certain bacteria convert light energy (usually from the sun) into chemical energy stored in glucose. This process takes place primarily in the chloroplasts of plant cells, using the green pigment chlorophyll.",
-          callout: {
-            type: "definition",
-            label: "Definition",
-            text: "Photosynthesis: The process of converting light energy into chemical energy (glucose) using carbon dioxide and water, with oxygen released as a byproduct."
-          }
+          type: "heading",
+          content: "What is Photosynthesis?"
         },
         {
-          heading: "The Chemical Equation",
-          formula: "6CO_2 + 6H_2O \\xrightarrow{\\text{light}} C_6H_{12}O_6 + 6O_2",
+          type: "text",
+          content: "Photosynthesis is the biological process by which green plants, algae, and certain bacteria convert light energy (usually from the sun) into chemical energy stored in glucose. This process takes place primarily in the chloroplasts of plant cells, using the green pigment chlorophyll."
+        },
+        {
+          type: "callout",
+          variant: "definition",
+          title: "Definition",
+          content: "Photosynthesis: The process of converting light energy into chemical energy (glucose) using carbon dioxide and water, with oxygen released as a byproduct."
+        },
+        {
+          type: "heading",
+          content: "The Chemical Equation"
+        },
+        {
+          type: "formula",
+          latex: "6CO_2 + 6H_2O \\xrightarrow{\\text{light}} C_6H_{12}O_6 + 6O_2",
+          label: "Balanced chemical equation for photosynthesis"
+        },
+        {
+          type: "text",
           content: "This balanced equation shows that six molecules of carbon dioxide react with six molecules of water, powered by light energy, to produce one molecule of glucose and six molecules of oxygen."
         },
         {
-          heading: "Two Main Stages",
-          content: "Photosynthesis occurs in two major stages: the Light-Dependent Reactions and the Calvin Cycle (Light-Independent Reactions). Each stage takes place in a specific part of the chloroplast.",
-          callout: {
-            type: "key-concept",
-            label: "Key Concept",
-            text: "The Light-Dependent Reactions occur in the thylakoid membranes, while the Calvin Cycle takes place in the stroma of the chloroplast."
-          },
-          table: {
-            headers: ["Feature", "Light-Dependent Reactions", "Calvin Cycle"],
-            rows: [
-              ["Location", "Thylakoid membranes", "Stroma"],
-              ["Inputs", "Light, H₂O, NADP⁺, ADP", "CO₂, ATP, NADPH"],
-              ["Outputs", "ATP, NADPH, O₂", "G3P (→ Glucose)"],
-              ["Energy", "Requires light", "Does not require light directly"],
-              ["Duration", "Fast (milliseconds)", "Slower (seconds)"]
-            ]
-          }
+          type: "heading",
+          content: "Two Main Stages"
         },
         {
-          heading: "Light-Dependent Reactions — Detailed",
-          content: "In this stage, light energy is absorbed by chlorophyll and other pigments in Photosystem II (PSII) and Photosystem I (PSI). The energy drives the photolysis of water, generates ATP through chemiosmosis, and produces NADPH as an energy carrier.",
-          highlights: [
+          type: "text",
+          content: "Photosynthesis occurs in two major stages: the Light-Dependent Reactions and the Calvin Cycle (Light-Independent Reactions). Each stage takes place in a specific part of the chloroplast."
+        },
+        {
+          type: "callout",
+          variant: "key-concept",
+          title: "Key Concept",
+          content: "The Light-Dependent Reactions occur in the thylakoid membranes, while the Calvin Cycle takes place in the stroma of the chloroplast."
+        },
+        {
+          type: "table",
+          headers: ["Feature", "Light-Dependent Reactions", "Calvin Cycle"],
+          rows: [
+            ["Location", "Thylakoid membranes", "Stroma"],
+            ["Inputs", "Light, H₂O, NADP⁺, ADP", "CO₂, ATP, NADPH"],
+            ["Outputs", "ATP, NADPH, O₂", "G3P → Glucose"],
+            ["Energy", "Requires light", "Does not require light directly"],
+            ["Duration", "Fast (milliseconds)", "Slower (seconds)"]
+          ]
+        },
+        {
+          type: "heading",
+          content: "Light-Dependent Reactions — Detailed"
+        },
+        {
+          type: "text",
+          content: "In this stage, light energy is absorbed by chlorophyll and other pigments in Photosystem II (PSII) and Photosystem I (PSI). The energy drives the photolysis of water, generates ATP through chemiosmosis, and produces NADPH as an energy carrier."
+        },
+        {
+          type: "list",
+          ordered: false,
+          items: [
             "⚡ Photolysis of water: 2H₂O → 4H⁺ + O₂ + 4e⁻",
             "🔋 ATP synthase generates ATP via proton gradient",
             "🔄 Electron transport chain connects PSII to PSI",
@@ -421,45 +467,66 @@ document.addEventListener('DOMContentLoaded', () => {
           ]
         },
         {
-          heading: "The Calvin Cycle",
-          content: "The Calvin Cycle uses ATP and NADPH from the light reactions to fix CO₂ into organic molecules. It consists of three phases: carbon fixation, reduction, and regeneration of the CO₂ acceptor (RuBP).",
-          callout: {
-            type: "definition",
-            label: "Important",
-            text: "RuBisCO is the most abundant protein on Earth. It catalyzes the first step of carbon fixation in the Calvin Cycle."
-          }
+          type: "heading",
+          content: "The Calvin Cycle"
         },
         {
-          heading: "Factors Affecting Photosynthesis",
-          content: "The rate of photosynthesis is influenced by several environmental factors. Understanding these factors is crucial for agriculture and ecosystem management.",
-          table: {
-            headers: ["Factor", "Effect", "Optimal Range"],
-            rows: [
-              ["Light Intensity", "Increases rate up to saturation point", "1000–2000 μmol/m²/s"],
-              ["CO₂ Concentration", "Higher CO₂ = faster fixation", "400–800 ppm"],
-              ["Temperature", "Enzyme-dependent; too hot denatures", "25–35°C"],
-              ["Water Availability", "Required for photolysis", "Adequate soil moisture"],
-              ["Chlorophyll Content", "More chlorophyll = more light absorbed", "Species-dependent"]
-            ]
-          }
+          type: "text",
+          content: "The Calvin Cycle uses ATP and NADPH from the light reactions to fix CO₂ into organic molecules. It consists of three phases: carbon fixation, reduction, and regeneration of the CO₂ acceptor (RuBP)."
         },
         {
-          heading: "C3, C4, and CAM Plants",
-          content: "Different plant species have evolved distinct carbon fixation strategies to adapt to various environments.",
-          highlights: [
+          type: "callout",
+          variant: "tip",
+          title: "Important",
+          content: "RuBisCO is the most abundant protein on Earth. It catalyzes the first step of carbon fixation in the Calvin Cycle."
+        },
+        {
+          type: "heading",
+          content: "Factors Affecting Photosynthesis"
+        },
+        {
+          type: "text",
+          content: "The rate of photosynthesis is influenced by several environmental factors. Understanding these factors is crucial for agriculture and ecosystem management."
+        },
+        {
+          type: "table",
+          headers: ["Factor", "Effect", "Optimal Range"],
+          rows: [
+            ["Light Intensity", "Increases rate up to saturation point", "1000–2000 μmol/m²/s"],
+            ["CO₂ Concentration", "Higher CO₂ = faster fixation", "400–800 ppm"],
+            ["Temperature", "Enzyme-dependent; too hot denatures", "25–35°C"],
+            ["Water Availability", "Required for photolysis", "Adequate soil moisture"],
+            ["Chlorophyll Content", "More chlorophyll = more light absorbed", "Species-dependent"]
+          ]
+        },
+        {
+          type: "heading",
+          content: "C3, C4, and CAM Plants"
+        },
+        {
+          type: "text",
+          content: "Different plant species have evolved distinct carbon fixation strategies to adapt to various environments."
+        },
+        {
+          type: "list",
+          ordered: false,
+          items: [
             "🌱 C3 plants (e.g., rice, wheat): Calvin Cycle only; common in temperate climates",
             "🌿 C4 plants (e.g., corn, sugarcane): Use PEP carboxylase to concentrate CO₂; hot environments",
             "🌵 CAM plants (e.g., cacti, pineapple): Open stomata at night to conserve water; arid environments"
           ]
+        },
+        {
+          type: "mindmap",
+          root: "Photosynthesis",
+          children: [
+            { label: "Light Reactions", sub: ["Thylakoid", "ATP + NADPH + O₂"] },
+            { label: "Calvin Cycle", sub: ["Stroma", "CO₂ fixation → G3P"] },
+            { label: "Key Enzyme", sub: ["RuBisCO fixes CO₂ to RuBP"] },
+            { label: "Environmental Factors", sub: ["Light, CO₂, temperature, water"] },
+            { label: "Plant Adaptations", sub: ["C3, C4, CAM pathways"] }
+          ]
         }
-      ],
-      mindmap: [
-        { topic: "Photosynthesis", detail: "Light energy → Chemical energy (glucose)" },
-        { topic: "Light Reactions", detail: "Thylakoid → ATP + NADPH + O₂" },
-        { topic: "Calvin Cycle", detail: "Stroma → CO₂ fixation → G3P" },
-        { topic: "Key Enzyme", detail: "RuBisCO fixes CO₂ to RuBP" },
-        { topic: "Environmental Factors", detail: "Light, CO₂, temperature, water" },
-        { topic: "Plant Adaptations", detail: "C3, C4, CAM pathways" }
       ]
     };
   }

@@ -2,6 +2,11 @@
    AI Study PDF Designer - Main App Styles
    ======================================== */
 
+/* === Utility Classes === */
+.hidden {
+  display: none !important;
+}
+
 /* === CSS Variables === */
 :root {
   --color-primary: #6C5CE7;
